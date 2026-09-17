@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  /* SkillAssess 360 Corporate Palette */
+  --color-brand-maroon: #7A2E3A;
+  --color-brand-maroon-hover: #64242F;
+  --color-brand-maroon-light: #F8ECEE;
+  --color-brand-gold: #C9A24D;
+  --color-brand-gold-hover: #B6903D;
+  --color-brand-gold-light: #FBF6E8;
+  --color-brand-bg: #FFFCF8;
+  --color-brand-input: #FFFFFF;
+  --color-brand-border: #E8D9D2;
+  --color-brand-text: #3F3030;
+  --color-brand-text-secondary: #806F6F;
+
+  /* Aliased colors for consistent system usage */
+  --color-maroon-50: #F8ECEE;
+  --color-maroon-100: #F8ECEE;
+  --color-maroon-200: #F1D4D8;
+  --color-maroon-300: #E4B4BC;
+  --color-maroon-600: #8C3543;
+  --color-maroon-700: #7A2E3A;
+  --color-maroon-800: #7A2E3A;
+  --color-maroon-900: #64242F;
+  --color-maroon-950: #42161D;
+
+  --color-gold-50: #FBF6E8;
+  --color-gold-100: #FBF6E8;
+  --color-gold-200: #F6E9C9;
+  --color-gold-300: #EED79D;
+  --color-gold-500: #C9A24D;
+  --color-gold-600: #B6903D;
+  --color-gold-700: #97732B;
+
+  --color-canvas-base: #FFFCF8;
+  --color-canvas-card: #FFFFFF;
+  --color-canvas-subtle: #F8ECEE;
+  --color-canvas-muted: #F3EAE6;
+
+  --color-borderlight: #E8D9D2;
+
+  --shadow-soft: 0 1px 3px rgba(63, 48, 48, 0.04), 0 1px 2px rgba(63, 48, 48, 0.02);
+  --shadow-modal: 0 12px 36px -4px rgba(63, 48, 48, 0.12), 0 4px 12px -2px rgba(63, 48, 48, 0.06);
+}
+
+:root {
+  --color-maroon: #7A2E3A;
+  --color-maroon-light: #F8ECEE;
+  --color-gold: #C9A24D;
+  --color-gold-light: #FBF6E8;
+  --color-canvas: #FFFCF8;
+  --color-border: #E8D9D2;
+  --color-text: #3F3030;
+  --color-text-secondary: #806F6F;
+}
+
+body {
+  background-color: #FFFCF8;
+  color: #3F3030;
+}
+
+html[dir="rtl"] {
+  font-family: 'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+}
+
+html[dir="ltr"] {
+  font-family: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E8D9D2;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4C1BA;
+}
+
+/* Subtle gold-gradient utility for selected high-priority highlights */
+.gold-gradient-subtle {
+  background: linear-gradient(135deg, rgba(201, 162, 77, 0.12) 0%, rgba(201, 162, 77, 0.04) 100%);
+}
+
+.gold-border-accent {
+  border-color: #C9A24D;
+}
+
+.maroon-gradient-subtle {
+  background: linear-gradient(135deg, rgba(122, 46, 58, 0.08) 0%, rgba(122, 46, 58, 0.02) 100%);
+}
