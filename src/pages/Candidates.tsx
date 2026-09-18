@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Plus, Search, Filter, UserCheck, Award, UserPlus, Save, User, Camera, Wrench, Lock, CheckCircle2 } from 'lucide-react';
+import { Eye, Plus, Search, Filter, UserCheck, Award, UserPlus, Save, User, Camera, Wrench, Lock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Candidate, Center, Batch } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
+import { SerialService } from '../services/serialService';
+import { SecurityService } from '../services/securityService';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +27,8 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate }) =>
   const { user } = useAuth();
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
+  const userCountryId = user?.countryId || 'cnt-sa';
+  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
   const isSupportStaff = user?.role === 'SUPPORT_STAFF';
   const isCenterScoped = isCenterAdmin || isSupportStaff;
@@ -54,24 +58,39 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate }) =>
 
   const loadData = () => {
     const allCandidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
-    const filtered = isCenterScoped 
-      ? allCandidates.filter(c => c.centerId === userCenterId)
-      : allCandidates;
+    const allCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+    const allBatches = StorageService.get<Batch[]>(STORAGE_KEYS.BATCHES, []);
+
+    let filtered = allCandidates;
+    let filteredCenters = allCenters;
+    let filteredBatches = allBatches;
+
+    if (isCenterScoped) {
+      filtered = allCandidates.filter(c => c.centerId === userCenterId);
+      filteredCenters = allCenters.filter(c => c.id === userCenterId);
+      filteredBatches = allBatches.filter(b => b.centerId === userCenterId);
+    } else if (isCountryAccount) {
+      const countryCenterIds = new Set(allCenters.filter(c => c.countryId === userCountryId).map(c => c.id));
+      filtered = allCandidates.filter(c => c.countryId === userCountryId || (c.centerId && countryCenterIds.has(c.centerId)));
+      filteredCenters = allCenters.filter(c => c.countryId === userCountryId);
+      filteredBatches = allBatches.filter(b => countryCenterIds.has(b.centerId));
+    }
+
     setCandidates(filtered);
-    setCenters(StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []));
-    setBatches(StorageService.get<Batch[]>(STORAGE_KEYS.BATCHES, []));
+    setCenters(filteredCenters);
+    setBatches(filteredBatches);
   };
 
   useEffect(() => {
     loadData();
-  }, [userCenterId, isCenterScoped]);
+  }, [userCenterId, userCountryId, isCenterScoped, isCountryAccount]);
 
   const handleOpenAdd = () => {
     setFormData({
       fullNameEn: '',
       fullNameAr: '',
       passportNumber: `P${Math.floor(1000000 + Math.random() * 9000000)}`,
-      aproReference: `APRO-SA-${Math.floor(10000 + Math.random() * 90000)}`,
+      aproReference: SerialService.generateNextApro('SA'),
       nationalId: `199${Math.floor(1000000 + Math.random() * 9000000)}`,
       occupation: 'Electrical Installation',
       centerId: centers[0]?.id || '',
@@ -88,6 +107,9 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate }) =>
       return;
     }
 
+    const assignedCenterId = isCenterAdmin ? userCenterId : (formData.centerId || centers[0]?.id || 'ctr-sa-1');
+    const assignedCenter = centers.find(c => c.id === assignedCenterId);
+
     const newCandidate: Candidate = {
       id: `can-${Date.now()}`,
       fullNameEn: formData.fullNameEn.trim(),
@@ -96,15 +118,27 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate }) =>
       aproReference: formData.aproReference.trim().toUpperCase(),
       nationalId: formData.nationalId.trim(),
       occupation: formData.occupation,
-      countryId: 'cnt-sa',
-      centerId: isCenterAdmin ? userCenterId : formData.centerId,
+      countryId: assignedCenter?.countryId || userCountryId || 'cnt-sa',
+      centerId: assignedCenterId,
       batchId: formData.batchId,
-      status: formData.status,
+      enrollmentStatus: 'NOT_ENROLLED',
+      cbtStatus: 'NOT_STARTED',
+      practicalStatus: 'NOT_STARTED',
+      evidenceStatus: 'NOT_UPLOADED',
+      status: formData.status as any,
       registeredAt: new Date().toISOString(),
+      idCardStatus: 'NOT_REQUESTED',
     };
 
+    // Strict Data Integrity & RBAC validation
+    const integrityCheck = SecurityService.validateCandidateIntegrity(newCandidate);
+    if (!integrityCheck.valid) {
+      showToast(integrityCheck.error || 'Candidate integrity validation error', 'error');
+      return;
+    }
+
     StorageService.updateItem(STORAGE_KEYS.CANDIDATES, newCandidate);
-    AuditService.log('CREATE_CANDIDATE', 'CANDIDATE', `Enrolled candidate ${newCandidate.fullNameEn} (${newCandidate.aproReference})`, newCandidate.id);
+    AuditService.log('CREATE_CANDIDATE', 'CANDIDATE', `Enrolled candidate ${newCandidate.fullNameEn} (${newCandidate.aproReference}) with integrity verification`, newCandidate.id);
     showToast(t.toasts.createdSuccess, 'success');
     setIsAddOpen(false);
     loadData();

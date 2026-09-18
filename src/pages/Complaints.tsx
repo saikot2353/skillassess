@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MessageSquareWarning, AlertTriangle, CheckCircle2, Clock, 
   Search, Filter, Plus, Eye, CheckCircle, XCircle, Building2,
-  Send, User, FileText, ChevronDown, ShieldAlert
+  Send, FileText, ChevronDown, ShieldAlert
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
@@ -12,7 +12,7 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
-import { Complaint, Center, Country } from '../types';
+import { Complaint, Center, Country, User } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 interface ComplaintsPageProps {
@@ -30,6 +30,7 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,8 +42,9 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
   // Resolution Modal
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [resolutionStatus, setResolutionStatus] = useState<'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'>('IN_PROGRESS');
+  const [resolutionStatus, setResolutionStatus] = useState<Complaint['status']>('UNDER_REVIEW');
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [assignedUser, setAssignedUser] = useState<string>('');
 
   // Create Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -63,6 +65,7 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
     setComplaints(filtered);
     setCenters(StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []));
     setCountries(StorageService.get<Country[]>(STORAGE_KEYS.COUNTRIES, []));
+    setAllUsers(StorageService.get<User[]>(STORAGE_KEYS.USERS, []));
   };
 
   useEffect(() => {
@@ -91,7 +94,8 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
 
   // KPIs
   const totalOpen = complaints.filter(c => c.status === 'OPEN').length;
-  const totalInProgress = complaints.filter(c => c.status === 'IN_PROGRESS').length;
+  const totalUnderReview = complaints.filter(c => c.status === 'UNDER_REVIEW' || c.status === 'IN_PROGRESS').length;
+  const totalActionRequired = complaints.filter(c => c.status === 'ACTION_REQUIRED').length;
   const totalResolved = complaints.filter(c => c.status === 'RESOLVED' || c.status === 'CLOSED').length;
   const totalUrgent = complaints.filter(c => c.priority === 'URGENT' || c.priority === 'HIGH').length;
 
@@ -99,31 +103,76 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
     setSelectedComplaint(comp);
     setResolutionStatus(comp.status);
     setResolutionNotes(comp.resolutionNotes || '');
+    setAssignedUser(comp.assignedTo || '');
     setIsDetailModalOpen(true);
   };
 
   const handleSaveResolution = () => {
     if (!selectedComplaint) return;
 
+    if ((resolutionStatus === 'RESOLVED' || resolutionStatus === 'CLOSED') && !resolutionNotes.trim()) {
+      showToast(
+        language === 'ar' 
+          ? 'ملاحظات وتفاصيل القرار إلزامية لاعتماد حل أو إغلاق الشكوى' 
+          : 'Resolution findings and remediation notes are mandatory to resolve or close a grievance ticket', 
+        'warning'
+      );
+      return;
+    }
+
+    const assignedObj = allUsers.find(u => u.id === assignedUser);
+    const prevStatus = selectedComplaint.status;
+
+    const newHistoryEntry = {
+      id: `cmph-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      complaintId: selectedComplaint.id,
+      fromStatus: prevStatus,
+      toStatus: resolutionStatus,
+      changedBy: user?.name ? `${user.name} (${user.role})` : 'Administrator',
+      changedAt: new Date().toISOString(),
+      comment: resolutionNotes.trim() || undefined,
+      assignedTo: assignedObj ? `${assignedObj.name} (${assignedObj.role})` : selectedComplaint.assignedToName
+    };
+
     const updated: Complaint = {
       ...selectedComplaint,
       status: resolutionStatus,
-      resolutionNotes: resolutionNotes,
+      assignedTo: assignedUser || selectedComplaint.assignedTo,
+      assignedToName: assignedObj ? `${assignedObj.name} (${assignedObj.role})` : selectedComplaint.assignedToName,
+      resolutionNotes: resolutionNotes.trim() || selectedComplaint.resolutionNotes,
       resolvedAt: (resolutionStatus === 'RESOLVED' || resolutionStatus === 'CLOSED') 
         ? (selectedComplaint.resolvedAt || new Date().toISOString()) 
         : undefined,
+      history: [...(selectedComplaint.history || []), newHistoryEntry]
     };
 
     StorageService.updateItem(STORAGE_KEYS.COMPLAINTS, updated);
+
     AuditService.log(
-      'UPDATE', 
+      'UPDATE_COMPLAINT', 
       'COMPLAINT', 
-      `Supervisory action on complaint ${updated.complaintNumber}: status updated to ${updated.status}. Remarks: ${resolutionNotes.slice(0, 60)}...`, 
+      `Supervisory action on complaint ${updated.complaintNumber}: transitioned from ${prevStatus} to ${updated.status}. Investigator: ${updated.assignedToName || 'Unassigned'}. Remarks: ${resolutionNotes.slice(0, 60)}...`, 
       updated.id, 
       'SUCCESS'
     );
 
-    showToast(language === 'ar' ? 'تم تحديث حالة الشكوى وتسجيل القرار' : 'Complaint review updated and audit trail logged', 'success');
+    // Dispatch Notification into system
+    const notif = {
+      id: `notif-${Date.now()}`,
+      titleEn: `Grievance ${updated.complaintNumber} Status: ${updated.status}`,
+      titleAr: `تحديث تذكرة الشكوى ${updated.complaintNumber}: ${updated.status}`,
+      messageEn: `Complaint ${updated.complaintNumber} transitioned to ${updated.status}. Investigator: ${updated.assignedToName || 'Unassigned'}.`,
+      messageAr: `تم تحديث التذكرة ${updated.complaintNumber} إلى ${updated.status}. المكلف: ${updated.assignedToName || 'غير معين'}.`,
+      type: updated.status === 'ACTION_REQUIRED' ? ('ALERT' as const) : (updated.status === 'RESOLVED' ? ('SUCCESS' as const) : ('INFO' as const)),
+      targetRole: (isCenterAdmin ? 'CENTER_ADMIN' : 'ALL') as any,
+      read: false,
+      createdAt: new Date().toISOString(),
+      link: '/complaints'
+    };
+    const currentNotifs = StorageService.get<any[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+    StorageService.set(STORAGE_KEYS.NOTIFICATIONS, [notif, ...currentNotifs]);
+
+    showToast(language === 'ar' ? 'تم تحديث حالة الشكوى وإضافة الإجراء لسجل التدقيق' : 'Grievance ticket updated, history logged, and notification dispatched', 'success');
     setIsDetailModalOpen(false);
     loadData();
   };
@@ -137,9 +186,12 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
     }
 
     const ctr = centers.find(c => c.id === targetCenterId);
+    const newCompId = `cmp-${Date.now()}`;
+    const newCompNumber = `CMP-2026-00${complaints.length + 5}`;
+    
     const newComp: Complaint = {
-      id: `cmp-${Date.now()}`,
-      complaintNumber: `CMP-2026-00${complaints.length + 5}`,
+      id: newCompId,
+      complaintNumber: newCompNumber,
       countryId: ctr ? ctr.countryId : (user?.countryId || 'cnt-sa'),
       centerId: targetCenterId,
       reportedBy: createForm.reportedBy,
@@ -149,6 +201,17 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
       subject: createForm.subject,
       description: createForm.description,
       createdAt: new Date().toISOString(),
+      history: [
+        {
+          id: `cmph-${Date.now()}`,
+          complaintId: newCompId,
+          fromStatus: undefined,
+          toStatus: 'OPEN',
+          changedBy: createForm.reportedBy,
+          changedAt: new Date().toISOString(),
+          comment: 'Initial grievance registered into system register'
+        }
+      ]
     };
 
     StorageService.updateItem(STORAGE_KEYS.COMPLAINTS, newComp);
@@ -160,7 +223,23 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
       'SUCCESS'
     );
 
-    showToast(language === 'ar' ? 'تم تسجيل الشكوى بنجاح وإحالتها للمراجعة' : 'Complaint ticket logged successfully', 'success');
+    // Dispatch Notification
+    const notif = {
+      id: `notif-${Date.now()}`,
+      titleEn: `New Grievance Ticket Logged: ${newComp.complaintNumber}`,
+      titleAr: `تسجيل تذكرة شكوى جديدة: ${newComp.complaintNumber}`,
+      messageEn: `Priority: ${newComp.priority} • Category: ${newComp.category} • Subject: ${newComp.subject}`,
+      messageAr: `الأولوية: ${newComp.priority} • التصنيف: ${newComp.category} • الموضوع: ${newComp.subject}`,
+      type: newComp.priority === 'URGENT' ? ('ALERT' as const) : ('WARNING' as const),
+      targetRole: (isCenterAdmin ? 'CENTER_ADMIN' : 'ALL') as any,
+      read: false,
+      createdAt: new Date().toISOString(),
+      link: '/complaints'
+    };
+    const currentNotifs = StorageService.get<any[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+    StorageService.set(STORAGE_KEYS.NOTIFICATIONS, [notif, ...currentNotifs]);
+
+    showToast(language === 'ar' ? 'تم تسجيل الشكوى بنجاح وإحالتها للمراجعة' : 'Complaint ticket logged successfully and notification dispatched', 'success');
     setIsCreateModalOpen(false);
     setCreateForm({
       reportedBy: '',
@@ -220,41 +299,50 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
             <span className="text-xs font-medium">{language === 'ar' ? 'إجمالي البلاغات' : 'Total Grievances'}</span>
             <MessageSquareWarning className="w-4 h-4 text-[#7A2E3A]" />
           </div>
           <p className="text-2xl font-bold font-mono text-[#3F3030]">{complaints.length}</p>
-          <span className="text-[11px] text-[#806F6F]">{totalOpen} pending initial review</span>
+          <span className="text-[11px] text-[#806F6F]">{totalOpen} {language === 'ar' ? 'بانتظار الفرز' : 'open / intake'}</span>
         </div>
 
         <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
-            <span className="text-xs font-medium">{language === 'ar' ? 'قيد التحكيم والتحقيق' : 'Under Arbitration'}</span>
+            <span className="text-xs font-medium">{language === 'ar' ? 'قيد التحكيم والمراجعة' : 'Under Review'}</span>
             <Clock className="w-4 h-4 text-[#C9A24D]" />
           </div>
-          <p className="text-2xl font-bold font-mono text-[#C9A24D]">{totalInProgress}</p>
-          <span className="text-[11px] text-[#806F6F]">Supervisory assignment active</span>
+          <p className="text-2xl font-bold font-mono text-[#C9A24D]">{totalUnderReview}</p>
+          <span className="text-[11px] text-[#806F6F]">{language === 'ar' ? 'إحالة نشطة للتحقيق' : 'Active investigation'}</span>
         </div>
 
         <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
-            <span className="text-xs font-medium">{language === 'ar' ? 'تمت معالجتها' : 'Resolved & Settled'}</span>
+            <span className="text-xs font-medium">{language === 'ar' ? 'إجراء تصحيحي مطلوب' : 'Action Required'}</span>
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+          </div>
+          <p className="text-2xl font-bold font-mono text-amber-700">{totalActionRequired}</p>
+          <span className="text-[11px] text-amber-600 font-medium">{language === 'ar' ? 'بانتظار تنفيذ التوصيات' : 'Remediation pending'}</span>
+        </div>
+
+        <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
+          <div className="flex items-center justify-between text-[#806F6F] mb-1">
+            <span className="text-xs font-medium">{language === 'ar' ? 'تمت معالجتها ومغلقة' : 'Resolved & Settled'}</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <p className="text-2xl font-bold font-mono text-emerald-700">{totalResolved}</p>
-          <span className="text-[11px] text-emerald-600 font-medium">Formal rulings recorded</span>
+          <span className="text-[11px] text-emerald-600 font-medium">{language === 'ar' ? 'قرارات رسمية معتمدة' : 'Formal rulings sealed'}</span>
         </div>
 
-        <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
+        <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
-            <span className="text-xs font-medium">{language === 'ar' ? 'حالات عاجلة / طارئة' : 'High / Urgent Escalations'}</span>
-            <AlertTriangle className="w-4 h-4 text-rose-600" />
+            <span className="text-xs font-medium">{language === 'ar' ? 'حالات طارئة وعاجلة' : 'Urgent Priority'}</span>
+            <ShieldAlert className="w-4 h-4 text-rose-600" />
           </div>
           <p className="text-2xl font-bold font-mono text-rose-700">{totalUrgent}</p>
-          <span className="text-[11px] text-rose-600 font-medium">Priority supervisory queue</span>
+          <span className="text-[11px] text-rose-600 font-medium">{language === 'ar' ? 'أولوية رقابية قصوى' : 'High supervisory queue'}</span>
         </div>
       </div>
 
@@ -283,6 +371,7 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
             <option value="EXAMINATION_CONDUCT">{language === 'ar' ? 'سير الاختبار' : 'Exam Conduct'}</option>
             <option value="TECHNICAL_EQUIPMENT">{language === 'ar' ? 'الأجهزة والتقنية' : 'Technical / Equipment'}</option>
             <option value="FACILITY">{language === 'ar' ? 'مرافق الورشة' : 'Facility & Safety'}</option>
+            <option value="OTHER">{language === 'ar' ? 'أخرى' : 'Other'}</option>
           </select>
 
           {/* Status Filter */}
@@ -293,9 +382,10 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
           >
             <option value="ALL">{language === 'ar' ? 'كافة الحالات' : 'All Statuses'}</option>
             <option value="OPEN">{language === 'ar' ? 'مفتوحة (جديدة)' : 'OPEN'}</option>
-            <option value="IN_PROGRESS">{language === 'ar' ? 'قيد المراجعة' : 'IN PROGRESS'}</option>
-            <option value="RESOLVED">{language === 'ar' ? 'تم الحل' : 'RESOLVED'}</option>
-            <option value="CLOSED">{language === 'ar' ? 'مغلقة' : 'CLOSED'}</option>
+            <option value="UNDER_REVIEW">{language === 'ar' ? 'قيد المراجعة والتحكيم' : 'UNDER REVIEW'}</option>
+            <option value="ACTION_REQUIRED">{language === 'ar' ? 'إجراء تصحيحي مطلوب' : 'ACTION REQUIRED'}</option>
+            <option value="RESOLVED">{language === 'ar' ? 'تم الحل والمعالجة' : 'RESOLVED'}</option>
+            <option value="CLOSED">{language === 'ar' ? 'مغلقة نهائياً' : 'CLOSED'}</option>
           </select>
 
           {/* Priority Filter */}
@@ -319,8 +409,8 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
               className="text-xs bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg px-2.5 py-1.5 text-[#3F3030] focus:outline-none focus:border-[#7A2E3A]"
             >
               <option value="ALL">{language === 'ar' ? 'كافة المراكز' : 'All Centers'}</option>
-              {centers.map(ctr => (
-                <option key={ctr.id} value={ctr.id}>{language === 'ar' ? ctr.nameAr : ctr.nameEn}</option>
+              {centers.map(c => (
+                <option key={c.id} value={c.id}>{c.nameEn}</option>
               ))}
             </select>
           )}
@@ -341,78 +431,84 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
         </div>
       </div>
 
-      {/* Complaints Table */}
-      <div className="bg-white border border-[#E8D9D2] rounded-xl overflow-hidden shadow-soft">
+      {/* Main Table */}
+      <div className="bg-white border border-[#E8D9D2] rounded-xl shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-start">
-            <thead className="bg-[#F8ECEE] text-[#7A2E3A] border-b border-[#E8D9D2]">
-              <tr>
-                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'رقم التذكرة' : 'Ticket #'}</th>
+          <table className="w-full text-xs text-start border-collapse">
+            <thead>
+              <tr className="border-b border-[#E8D9D2] bg-[#FFFCF8] text-[#806F6F]">
+                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'رقم البلاغ' : 'Ticket #'}</th>
                 <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'مقدم الشكوى' : 'Reported By'}</th>
-                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'المركز' : 'Center'}</th>
-                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'التصنيف' : 'Category'}</th>
-                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'موضوع البلاغ' : 'Subject'}</th>
-                <th className="py-2.5 px-3 font-semibold text-center">{language === 'ar' ? 'الأولوية' : 'Priority'}</th>
-                <th className="py-2.5 px-3 font-semibold text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                <th className="py-2.5 px-3 font-semibold text-end">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
+                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'التصنيف والموضوع' : 'Category & Subject'}</th>
+                {!isCenterAdmin && <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'المركز' : 'Center'}</th>}
+                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'المكلف' : 'Investigator'}</th>
+                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'الأولوية' : 'Priority'}</th>
+                <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                <th className="py-2.5 px-3 font-semibold text-end">{language === 'ar' ? 'الإجراء' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8D9D2]">
-              {filteredComplaints.map(comp => {
-                const center = centers.find(c => c.id === comp.centerId);
-
-                return (
+              {filteredComplaints.length === 0 ? (
+                <tr>
+                  <td colSpan={isCenterAdmin ? 7 : 8} className="py-8 text-center text-xs text-[#806F6F]">
+                    {language === 'ar' ? 'لا توجد شكاوى أو اعتراضات مسجلة' : 'No grievances or appeals match the filter criteria.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredComplaints.map(comp => (
                   <tr key={comp.id} className="hover:bg-[#FFFCF8]/80 transition-colors">
                     <td className="py-2.5 px-3 font-mono font-bold text-[#7A2E3A]">
                       {comp.complaintNumber}
                     </td>
                     <td className="py-2.5 px-3 font-medium text-[#3F3030]">
-                      {comp.reportedBy}
-                    </td>
-                    <td className="py-2.5 px-3 text-[#806F6F]">
-                      {center ? (language === 'ar' ? center.nameAr : center.nameEn) : 'Center'}
+                      <div className="truncate max-w-[160px]">{comp.reportedBy}</div>
+                      <div className="text-[10px] text-[#806F6F] font-mono">{new Date(comp.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 font-semibold text-[10px]">
-                        {getCategoryLabel(comp.category)}
+                      <span className="font-semibold text-[#3F3030] block truncate max-w-xs">{comp.subject}</span>
+                      <span className="text-[10px] text-[#806F6F] block">{getCategoryLabel(comp.category)}</span>
+                    </td>
+                    {!isCenterAdmin && (
+                      <td className="py-2.5 px-3 text-[#3F3030]">
+                        {centers.find(c => c.id === comp.centerId)?.nameEn || comp.centerId}
+                      </td>
+                    )}
+                    <td className="py-2.5 px-3 text-xs text-[#3F3030]">
+                      <span className="truncate max-w-[130px] block font-medium">
+                        {comp.assignedToName || comp.assignedTo || '—'}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-[#3F3030] font-medium max-w-xs truncate" title={comp.subject}>
-                      {comp.subject}
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
+                    <td className="py-2.5 px-3">
                       {getPriorityBadge(comp.priority)}
                     </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <Badge 
-                        variant={
-                          comp.status === 'RESOLVED' || comp.status === 'CLOSED' ? 'success' :
-                          comp.status === 'IN_PROGRESS' ? 'gold' : 'neutral'
-                        } 
-                        size="sm"
-                      >
-                        {comp.status}
+                    <td className="py-2.5 px-3">
+                      <Badge variant={
+                        comp.status === 'RESOLVED' || comp.status === 'CLOSED' ? 'success' :
+                        comp.status === 'ACTION_REQUIRED' ? 'warning' :
+                        comp.status === 'UNDER_REVIEW' || comp.status === 'IN_PROGRESS' ? 'info' : 'maroon'
+                      } size="sm">
+                        {comp.status.replace(/_/g, ' ')}
                       </Badge>
                     </td>
                     <td className="py-2.5 px-3 text-end">
                       <Button
                         variant="secondary"
-                        size="sm"
+                        size="xs"
                         onClick={() => handleOpenDetail(comp)}
-                        leftIcon={<Eye className="w-3.5 h-3.5" />}
+                        leftIcon={<Eye className="w-3 h-3" />}
                       >
-                        {language === 'ar' ? 'مراجعة' : 'Review'}
+                        {language === 'ar' ? 'فحص وتحكيم' : 'Arbitrate'}
                       </Button>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* DETAIL & RESOLUTION MODAL */}
+      {/* RESOLUTION / DETAIL MODAL */}
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
@@ -463,34 +559,113 @@ export const ComplaintsPage: React.FC<ComplaintsPageProps> = ({ onNavigate }) =>
               </div>
             </div>
 
-            {/* Supervisory Resolution Input */}
+            {/* Complaint Transition History Timeline */}
+            <div>
+              <label className="block text-xs font-bold text-[#3F3030] mb-2 flex items-center justify-between">
+                <span>{language === 'ar' ? 'المسار التاريخي للشكوى وسجل الإجراءات' : 'Grievance Audit Trail & Lifecycle History'}</span>
+                <span className="text-[10px] text-[#806F6F] font-normal">
+                  {selectedComplaint.history?.length || 1} {language === 'ar' ? 'مراحل مسجلة' : 'Recorded Stages'}
+                </span>
+              </label>
+              <div className="p-3 rounded-xl border border-[#E8D9D2] bg-[#FFFCF8] max-h-44 overflow-y-auto space-y-2.5 text-xs">
+                {(selectedComplaint.history && selectedComplaint.history.length > 0 ? selectedComplaint.history : [
+                  {
+                    id: 'init-1',
+                    complaintId: selectedComplaint.id,
+                    fromStatus: undefined,
+                    toStatus: selectedComplaint.status,
+                    changedBy: selectedComplaint.reportedBy,
+                    changedAt: selectedComplaint.createdAt,
+                    comment: 'Initial grievance registered into system'
+                  }
+                ]).map((entry, idx) => (
+                  <div key={entry.id || idx} className="flex items-start gap-2.5 relative pb-2 last:pb-0 border-b border-[#E8D9D2]/60 last:border-0">
+                    <div className="w-2 h-2 rounded-full bg-[#7A2E3A] mt-1.5 shrink-0" />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-bold text-[#3F3030] text-[11px]">{entry.changedBy}</span>
+                        <span className="font-mono text-[10px] text-[#806F6F]">
+                          {new Date(entry.changedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {entry.fromStatus && (
+                          <>
+                            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-stone-100 text-[#806F6F]">{entry.fromStatus}</span>
+                            <span className="text-[10px] text-[#806F6F]">→</span>
+                          </>
+                        )}
+                        <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-[#F8ECEE] text-[#7A2E3A] font-bold">{entry.toStatus}</span>
+                        {entry.assignedTo && (
+                          <span className="text-[10px] text-[#C9A24D] font-medium">
+                            • Assigned: {entry.assignedTo}
+                          </span>
+                        )}
+                      </div>
+                      {entry.comment && (
+                        <p className="text-[11px] text-[#3F3030] mt-1 bg-white p-1.5 rounded border border-[#E8D9D2]/70 leading-tight">
+                          {entry.comment}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Supervisory Resolution Input & Assignment */}
             <div className="space-y-3 pt-2 border-t border-[#E8D9D2]">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-[#3F3030]">
-                  {language === 'ar' ? 'قرار المشرف العام والإجراء المتخذ' : 'Supervisory Adjudication & Rationale'}
-                </label>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[#806F6F]">{language === 'ar' ? 'تحديث الحالة إلى:' : 'Set Status:'}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Assign Investigator / Admin */}
+                <div>
+                  <label className="block text-xs font-bold text-[#3F3030] mb-1">
+                    {language === 'ar' ? 'إحالة وتكليف مسؤول التحكيم:' : 'Assign Investigator / Reviewer:'}
+                  </label>
+                  <select
+                    value={assignedUser}
+                    onChange={e => setAssignedUser(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg text-xs font-medium text-[#3F3030] focus:outline-none focus:border-[#7A2E3A]"
+                  >
+                    <option value="">{language === 'ar' ? '-- بدون تكليف محدد --' : '-- Unassigned --'}</option>
+                    {allUsers.filter(u => ['SUPER_ADMIN', 'CENTER_ADMIN', 'ASSESSOR'].includes(u.role)).map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Target Status Progression */}
+                <div>
+                  <label className="block text-xs font-bold text-[#3F3030] mb-1">
+                    {language === 'ar' ? 'تحديث مرحلة الشكوى:' : 'Target Complaint Status:'}
+                  </label>
                   <select
                     value={resolutionStatus}
                     onChange={e => setResolutionStatus(e.target.value as any)}
-                    className="px-2 py-1 bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg text-xs font-bold text-[#7A2E3A] focus:outline-none"
+                    className="w-full px-2 py-1.5 bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg text-xs font-bold text-[#7A2E3A] focus:outline-none focus:border-[#7A2E3A]"
                   >
-                    <option value="OPEN">OPEN</option>
-                    <option value="IN_PROGRESS">IN_PROGRESS</option>
-                    <option value="RESOLVED">RESOLVED</option>
-                    <option value="CLOSED">CLOSED</option>
+                    <option value="OPEN">OPEN (Intake)</option>
+                    <option value="UNDER_REVIEW">UNDER REVIEW (Arbitration)</option>
+                    <option value="ACTION_REQUIRED">ACTION REQUIRED (Remediation)</option>
+                    <option value="RESOLVED">RESOLVED (Decision Ratified)</option>
+                    <option value="CLOSED">CLOSED (Final Archive)</option>
                   </select>
                 </div>
               </div>
 
-              <textarea
-                rows={3}
-                value={resolutionNotes}
-                onChange={e => setResolutionNotes(e.target.value)}
-                placeholder={language === 'ar' ? 'اكتب ملاحظات التحكيم والقرار المتخذ (سيتم تدوينه في سجل التدقيق)...' : 'Document supervisory findings, assessor re-evaluations, or facility remediation steps (immutable audit trail)...'}
-                className="w-full px-3 py-2 text-xs bg-[#FFFCF8] border border-[#E8D9D2] rounded-xl text-[#3F3030] placeholder-[#806F6F]/60 focus:outline-none focus:border-[#7A2E3A]"
-              />
+              <div>
+                <label className="block text-xs font-bold text-[#3F3030] mb-1">
+                  {language === 'ar' ? 'قرار المشرف العام وملاحظات التحكيم (إلزامي عند الحل أو الإغلاق):' : 'Supervisory Adjudication & Remediation Notes (Mandatory for Resolve/Close):'}
+                </label>
+                <textarea
+                  rows={3}
+                  value={resolutionNotes}
+                  onChange={e => setResolutionNotes(e.target.value)}
+                  placeholder={language === 'ar' ? 'اكتب ملاحظات التحكيم والقرار المتخذ (سيتم تدوينه في سجل التدقيق وإشعار المعنيين)...' : 'Document supervisory findings, assessor re-evaluations, or facility remediation steps (logged to immutable audit trail)...'}
+                  className="w-full px-3 py-2 text-xs bg-[#FFFCF8] border border-[#E8D9D2] rounded-xl text-[#3F3030] placeholder-[#806F6F]/60 focus:outline-none focus:border-[#7A2E3A]"
+                />
+              </div>
             </div>
 
             {/* Actions */}

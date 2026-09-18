@@ -147,6 +147,8 @@ export interface Reservation {
   importedAt: string;
 }
 
+export type IDCardStatus = 'NOT_REQUESTED' | 'REQUESTED' | 'APPROVED' | 'GENERATED';
+
 export interface Candidate {
   id: string;
   fullNameEn: string;
@@ -186,6 +188,9 @@ export interface Candidate {
   registeredAt: string;
   enrolledAt?: string;
   preloadStatus?: 'PRELOADED' | 'NOT_PRELOADED';
+  idCardStatus?: IDCardStatus;
+  idCardNumber?: string;
+  idCardGeneratedAt?: string;
 }
 
 export type TaskDifficulty = 'FOUNDATIONAL' | 'INTERMEDIATE' | 'ADVANCED';
@@ -346,6 +351,7 @@ export interface Result {
   centerId?: string;
   occupation?: string;
   assessorName?: string;
+  assessorId?: string;
   theoryScore?: number;
   practicalScore?: number;
   score: number;
@@ -434,6 +440,7 @@ export type AuditAction =
   | 'VIEW' 
   | 'SUBMIT' 
   | 'ASSIGN' 
+  | 'APPROVE'
   | 'LOCK'
   | 'CREATE_COUNTRY'
   | 'UPDATE_COUNTRY'
@@ -485,8 +492,22 @@ export interface AuditLog {
   entityId?: string;
   details: string;
   ipAddress: string;
+  deviceInfo?: string;
+  browserInfo?: string;
+  osInfo?: string;
   timestamp: string;
   status: 'SUCCESS' | 'FAILURE';
+}
+
+export interface ComplaintHistoryEntry {
+  id: string;
+  complaintId: string;
+  fromStatus?: string;
+  toStatus: string;
+  changedBy: string;
+  changedAt: string;
+  comment?: string;
+  assignedTo?: string;
 }
 
 export interface Complaint {
@@ -497,13 +518,35 @@ export interface Complaint {
   reportedBy: string;
   category: 'EXAMINATION_CONDUCT' | 'TECHNICAL_EQUIPMENT' | 'FACILITY' | 'RESULT_DISPUTE' | 'OTHER';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  status: 'OPEN' | 'UNDER_REVIEW' | 'ACTION_REQUIRED' | 'RESOLVED' | 'CLOSED' | 'IN_PROGRESS';
   subject: string;
   description: string;
   assignedTo?: string;
+  assignedToName?: string;
   createdAt: string;
   resolvedAt?: string;
   resolutionNotes?: string;
+  history?: ComplaintHistoryEntry[];
+}
+
+export interface AssessmentVarianceRecord {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  aproReference: string;
+  assessorId: string;
+  assessorName: string;
+  centerId: string;
+  centerName: string;
+  occupation: string;
+  taskCode: string;
+  taskTitle: string;
+  candidateScore: number;
+  cohortAverage: number;
+  variance: number;
+  riskStatus: 'NORMAL' | 'ATTENTION' | 'REVIEW_REQUIRED';
+  sectionScores?: Record<string, { score: number; maxScore: number; percentage: number }>;
+  evaluatedAt: string;
 }
 
 export interface LiveActivityEvent {
@@ -572,4 +615,26 @@ export interface SystemSettings {
   notificationsEnabled: boolean;
   autoRefreshInterval: number;
   compactSidebar: boolean;
+}
+
+export interface PracticalTaskConfig {
+  defaultDurationMinutes: number;
+  defaultPassingScore: number;
+  defaultMaxScore: number;
+  allowAssessorOverride: boolean;
+  requireToolsChecklist: boolean;
+  status: 'ACTIVE' | 'DRAFT';
+}
+
+export interface NotificationConfig {
+  channels: {
+    inApp: boolean;
+    email: boolean;
+    sms: boolean;
+  };
+  notifyOnComplaintSubmitted: boolean;
+  notifyOnResultLocked: boolean;
+  notifyOnIdCardApproved: boolean;
+  notifyOnLotteryExecution: boolean;
+  adminAlertEmail: string;
 }

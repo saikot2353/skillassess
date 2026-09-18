@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   CreditCard, Printer, Download, Eye, QrCode, ShieldCheck, 
   Sparkles, CheckCircle, RefreshCw, Filter, Search, Layers,
-  Sliders, AlertTriangle, UserCheck, CheckCircle2
+  Sliders, AlertTriangle, UserCheck, CheckCircle2, Clock, Check,
+  Send, User
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
@@ -13,7 +14,8 @@ import { Modal } from '../components/ui/Modal';
 import { Tabs } from '../components/ui/Tabs';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
-import { Candidate, Center, Country, IDCardConfig, Batch } from '../types';
+import { SerialService } from '../services/serialService';
+import { Candidate, Center, Country, IDCardConfig, Batch, IDCardStatus } from '../types';
 
 interface IDCardManagementPageProps {
   onNavigate?: (path: string) => void;
@@ -41,6 +43,7 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
   // Batch Generation Modal
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
+  const [batchActionType, setBatchActionType] = useState<'GENERATE' | 'APPROVE' | 'REQUEST'>('GENERATE');
   const [isGeneratingBatch, setIsGeneratingBatch] = useState(false);
 
   // ID Card Config (Configurable / TBC)
@@ -73,6 +76,43 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
     showToast(language === 'ar' ? 'تم حفظ إعدادات بطاقة الهوية المهنية بنجاح' : 'ID card template configuration updated successfully', 'success');
   };
 
+  // 4-Stage ID Card Lifecycle Handlers
+  const handleRequestCard = (cand: Candidate) => {
+    const updated: Candidate = {
+      ...cand,
+      idCardStatus: 'REQUESTED',
+    };
+    StorageService.updateItem(STORAGE_KEYS.CANDIDATES, updated);
+    AuditService.log('UPDATE', 'IDCARD', `Requested ID card issuance for candidate ${cand.fullNameEn} (${cand.aproReference})`, cand.id, 'SUCCESS');
+    showToast(language === 'ar' ? 'تم تقديم طلب إصدار البطاقة للمراجعة' : 'ID card issuance requested for review', 'info');
+    loadData();
+  };
+
+  const handleApproveCard = (cand: Candidate) => {
+    const updated: Candidate = {
+      ...cand,
+      idCardStatus: 'APPROVED',
+    };
+    StorageService.updateItem(STORAGE_KEYS.CANDIDATES, updated);
+    AuditService.log('APPROVE', 'IDCARD', `Approved ID card request for candidate ${cand.fullNameEn} (${cand.aproReference})`, cand.id, 'SUCCESS');
+    showToast(language === 'ar' ? 'تم اعتماد طلب إصدار البطاقة' : 'ID card issuance approved', 'success');
+    loadData();
+  };
+
+  const handleGenerateCard = (cand: Candidate) => {
+    const serial = SerialService.generateNextIdCardSerial('SA');
+    const updated: Candidate = {
+      ...cand,
+      idCardStatus: 'GENERATED',
+      idCardNumber: serial,
+      idCardGeneratedAt: new Date().toISOString(),
+    };
+    StorageService.updateItem(STORAGE_KEYS.CANDIDATES, updated);
+    AuditService.log('CREATE', 'IDCARD', `Generated and issued cryptographic ID card ${serial} for candidate ${cand.fullNameEn} (${cand.aproReference})`, cand.id, 'SUCCESS');
+    showToast(language === 'ar' ? `تم إصدار البطاقة بنجاح (${serial})` : `ID card generated and issued (${serial})`, 'success');
+    loadData();
+  };
+
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
       const q = searchTerm.toLowerCase();
@@ -81,12 +121,15 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
         c.fullNameAr.toLowerCase().includes(q) ||
         c.aproReference.toLowerCase().includes(q) ||
         c.passportNumber.toLowerCase().includes(q) ||
+        (c.idCardNumber && c.idCardNumber.toLowerCase().includes(q)) ||
         c.occupation.toLowerCase().includes(q);
 
       const matchesCenter = selectedCenter === 'ALL' || c.centerId === selectedCenter;
-      return matchesSearch && matchesCenter;
+      const status = c.idCardStatus || 'NOT_REQUESTED';
+      const matchesStatus = selectedStatus === 'ALL' || status === selectedStatus;
+      return matchesSearch && matchesCenter && matchesStatus;
     });
-  }, [candidates, searchTerm, selectedCenter]);
+  }, [candidates, searchTerm, selectedCenter, selectedStatus]);
 
   const handleOpenPreview = (cand: Candidate) => {
     setPreviewCandidate(cand);
@@ -105,12 +148,64 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
     }
     setIsGeneratingBatch(true);
 
-    setTimeout(() => {
+    const batchCandidates = candidates.filter(c => c.batchId === selectedBatchId);
+    if (batchCandidates.length === 0) {
       setIsGeneratingBatch(false);
-      setIsBatchModalOpen(false);
-      AuditService.log('CREATE', 'IDCARD_BATCH', `Generated cryptographic smart ID cards for batch ${selectedBatchId}`, selectedBatchId, 'SUCCESS');
-      showToast(language === 'ar' ? 'تم إصدار بطاقات الدفعة بنجاح وتجهيز ملف الطباعة' : 'Batch ID cards rendered and print spool prepared', 'success');
-    }, 1200);
+      showToast('No candidates found in selected batch', 'warning');
+      return;
+    }
+
+    let updatedCandidates = [...candidates];
+    let processedCount = 0;
+
+    if (batchActionType === 'REQUEST') {
+      const targets = batchCandidates.filter(c => (c.idCardStatus || 'NOT_REQUESTED') === 'NOT_REQUESTED');
+      targets.forEach(cand => {
+        const idx = updatedCandidates.findIndex(c => c.id === cand.id);
+        if (idx !== -1) {
+          updatedCandidates[idx] = { ...updatedCandidates[idx], idCardStatus: 'REQUESTED' };
+          processedCount++;
+        }
+      });
+      StorageService.set(STORAGE_KEYS.CANDIDATES, updatedCandidates);
+      AuditService.log('UPDATE', 'IDCARD_BATCH', `Batch requested ID cards for ${processedCount} candidates in batch ${selectedBatchId}`, selectedBatchId, 'SUCCESS');
+      showToast(`Batch submitted ${processedCount} ID card requests`, 'info');
+    } else if (batchActionType === 'APPROVE') {
+      const targets = batchCandidates.filter(c => c.idCardStatus === 'REQUESTED');
+      targets.forEach(cand => {
+        const idx = updatedCandidates.findIndex(c => c.id === cand.id);
+        if (idx !== -1) {
+          updatedCandidates[idx] = { ...updatedCandidates[idx], idCardStatus: 'APPROVED' };
+          processedCount++;
+        }
+      });
+      StorageService.set(STORAGE_KEYS.CANDIDATES, updatedCandidates);
+      AuditService.log('APPROVE', 'IDCARD_BATCH', `Batch approved ID cards for ${processedCount} candidates in batch ${selectedBatchId}`, selectedBatchId, 'SUCCESS');
+      showToast(`Batch approved ${processedCount} ID cards`, 'success');
+    } else {
+      // GENERATE
+      const targets = batchCandidates.filter(c => c.idCardStatus === 'APPROVED' || c.idCardStatus === 'REQUESTED' || !c.idCardNumber);
+      targets.forEach(cand => {
+        const idx = updatedCandidates.findIndex(c => c.id === cand.id);
+        if (idx !== -1) {
+          const serial = SerialService.generateNextIdCardSerial('SA');
+          updatedCandidates[idx] = {
+            ...updatedCandidates[idx],
+            idCardStatus: 'GENERATED',
+            idCardNumber: serial,
+            idCardGeneratedAt: new Date().toISOString(),
+          };
+          processedCount++;
+        }
+      });
+      StorageService.set(STORAGE_KEYS.CANDIDATES, updatedCandidates);
+      AuditService.log('CREATE', 'IDCARD_BATCH', `Generated cryptographic smart ID cards for ${processedCount} candidates in batch ${selectedBatchId}`, selectedBatchId, 'SUCCESS');
+      showToast(`Generated and issued ${processedCount} ID cards for batch!`, 'success');
+    }
+
+    setIsGeneratingBatch(false);
+    setIsBatchModalOpen(false);
+    loadData();
   };
 
   const tabs = [
@@ -158,42 +253,44 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
-            <span className="text-xs font-medium">{language === 'ar' ? 'إجمالي البطاقات' : 'Total Credentials'}</span>
+            <span className="text-xs font-medium">{language === 'ar' ? 'إجمالي المرشحين' : 'Total Candidates'}</span>
             <CreditCard className="w-4 h-4 text-[#7A2E3A]" />
           </div>
           <p className="text-2xl font-bold font-mono text-[#3F3030]">{candidates.length}</p>
-          <span className="text-[11px] text-emerald-600 font-medium">100% indexed in registry</span>
+          <span className="text-[11px] text-[#806F6F]">Registered in registry</span>
         </div>
 
         <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
-            <span className="text-xs font-medium">{language === 'ar' ? 'بطاقات صادرة' : 'Issued & Valid'}</span>
+            <span className="text-xs font-medium">{language === 'ar' ? 'بطاقات صادرة' : 'Issued & Active'}</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <p className="text-2xl font-bold font-mono text-emerald-700">
-            {candidates.filter(c => c.status === 'COMPLETED').length || 18}
+            {candidates.filter(c => c.idCardStatus === 'GENERATED').length}
           </p>
-          <span className="text-[11px] text-[#806F6F]">Verified QR signatures</span>
+          <span className="text-[11px] text-emerald-600 font-medium">Serial generated & verifiable</span>
         </div>
 
         <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
-            <span className="text-xs font-medium">{language === 'ar' ? 'قيد التجهيز' : 'Pending Issuance'}</span>
-            <RefreshCw className="w-4 h-4 text-[#C9A24D]" />
+            <span className="text-xs font-medium">{language === 'ar' ? 'معتمدة جاهزة للإصدار' : 'Approved (Ready)'}</span>
+            <Sparkles className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-bold font-mono text-[#7A2E3A]">
-            {candidates.filter(c => c.status !== 'COMPLETED').length || 4}
+          <p className="text-2xl font-bold font-mono text-blue-700">
+            {candidates.filter(c => c.idCardStatus === 'APPROVED').length}
           </p>
-          <span className="text-[11px] text-[#806F6F]">Awaiting final evaluation</span>
+          <span className="text-[11px] text-blue-600">Pending serial generation</span>
         </div>
 
         <div className="bg-white border border-[#E8D9D2] rounded-xl p-3.5 shadow-soft">
           <div className="flex items-center justify-between text-[#806F6F] mb-1">
-            <span className="text-xs font-medium">{language === 'ar' ? 'مستوى الأمان' : 'Security Standard'}</span>
-            <ShieldCheck className="w-4 h-4 text-[#7A2E3A]" />
+            <span className="text-xs font-medium">{language === 'ar' ? 'طلبات قيد المراجعة' : 'Requested / Pending'}</span>
+            <RefreshCw className="w-4 h-4 text-amber-600" />
           </div>
-          <p className="text-sm font-bold text-[#3F3030] mt-1">ISO/IEC 7810 ID-1</p>
-          <span className="text-[10px] text-emerald-600 font-medium">Holographic UV Emulation</span>
+          <p className="text-2xl font-bold font-mono text-amber-700">
+            {candidates.filter(c => c.idCardStatus === 'REQUESTED').length}
+          </p>
+          <span className="text-[11px] text-amber-600">Awaiting admin review</span>
         </div>
       </div>
 
@@ -211,12 +308,24 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder={language === 'ar' ? 'بحث بالاسم، رقم APRO، الجواز أو المهنة...' : 'Search by candidate name, APRO #, passport, trade...'}
+                placeholder={language === 'ar' ? 'بحث بالاسم، رقم APRO، الجواز أو رقم البطاقة...' : 'Search by name, APRO #, passport, card serial, trade...'}
                 className="w-full ps-9 pe-3 py-1.5 text-xs bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg text-[#3F3030] placeholder-[#806F6F]/60 focus:outline-none focus:border-[#7A2E3A]"
               />
             </div>
 
             <div className="flex items-center gap-2">
+              <select
+                value={selectedStatus}
+                onChange={e => setSelectedStatus(e.target.value)}
+                className="text-xs bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg px-2.5 py-1.5 text-[#3F3030] focus:outline-none focus:border-[#7A2E3A]"
+              >
+                <option value="ALL">{language === 'ar' ? 'كافة حالات البطاقات' : 'All Card Statuses'}</option>
+                <option value="NOT_REQUESTED">{language === 'ar' ? 'غير مطلوبة (Not Requested)' : 'Not Requested'}</option>
+                <option value="REQUESTED">{language === 'ar' ? 'قيد المراجعة (Requested)' : 'Requested'}</option>
+                <option value="APPROVED">{language === 'ar' ? 'معتمدة للإصدار (Approved)' : 'Approved'}</option>
+                <option value="GENERATED">{language === 'ar' ? 'صادرة ومفعلة (Generated)' : 'Generated & Issued'}</option>
+              </select>
+
               <select
                 value={selectedCenter}
                 onChange={e => setSelectedCenter(e.target.value)}
@@ -248,15 +357,19 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                 <tbody className="divide-y divide-[#E8D9D2]">
                   {filteredCandidates.map(cand => {
                     const center = centers.find(c => c.id === cand.centerId);
-                    const isIssued = cand.status === 'COMPLETED' || cand.id.endsWith('1') || cand.id.endsWith('3');
+                    const status = cand.idCardStatus || 'NOT_REQUESTED';
 
                     return (
                       <tr key={cand.id} className="hover:bg-[#FFFCF8]/80 transition-colors">
                         <td className="py-2.5 px-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-[#F8ECEE] text-[#7A2E3A] font-bold text-xs flex items-center justify-center shrink-0 border border-[#7A2E3A]/20">
-                              {cand.fullNameEn.slice(0, 2).toUpperCase()}
-                            </div>
+                            {cand.photoUrl ? (
+                              <img src={cand.photoUrl} alt={cand.fullNameEn} className="w-7 h-7 rounded-full object-cover border border-[#7A2E3A]/20" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-[#F8ECEE] text-[#7A2E3A] font-bold text-xs flex items-center justify-center shrink-0 border border-[#7A2E3A]/20">
+                                {cand.fullNameEn.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
                             <div>
                               <p className="font-bold text-[#3F3030]">{cand.fullNameEn}</p>
                               <p className="text-[10px] text-[#806F6F]">{cand.fullNameAr}</p>
@@ -270,32 +383,89 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                           {center ? (language === 'ar' ? center.nameAr : center.nameEn) : 'Center'}
                         </td>
                         <td className="py-2.5 px-3 text-center">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            isIssued ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
-                          }`}>
-                            {isIssued ? <CheckCircle className="w-3 h-3 text-emerald-600" /> : <RefreshCw className="w-3 h-3 text-amber-600 animate-spin" />}
-                            <span>{isIssued ? (language === 'ar' ? 'صادرة ومفعلة' : 'ISSUED') : (language === 'ar' ? 'قيد المعالجة' : 'PENDING')}</span>
-                          </span>
+                          {status === 'GENERATED' && (
+                            <div className="flex flex-col items-center">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                <span>{language === 'ar' ? 'صادرة ومفعلة' : 'GENERATED'}</span>
+                              </span>
+                              {cand.idCardNumber && (
+                                <span className="font-mono text-[9px] text-[#806F6F] mt-0.5">{cand.idCardNumber}</span>
+                              )}
+                            </div>
+                          )}
+                          {status === 'APPROVED' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              <CheckCircle2 className="w-3 h-3 text-blue-600" />
+                              <span>{language === 'ar' ? 'معتمدة للإصدار' : 'APPROVED'}</span>
+                            </span>
+                          )}
+                          {status === 'REQUESTED' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              <RefreshCw className="w-3 h-3 text-amber-600 animate-spin" />
+                              <span>{language === 'ar' ? 'قيد المراجعة' : 'REQUESTED'}</span>
+                            </span>
+                          )}
+                          {status === 'NOT_REQUESTED' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
+                              <Clock className="w-3 h-3 text-stone-400" />
+                              <span>{language === 'ar' ? 'غير مطلوبة' : 'NOT REQUESTED'}</span>
+                            </span>
+                          )}
                         </td>
                         <td className="py-2.5 px-3 text-end">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => handleOpenPreview(cand)}
-                              title="Preview Digital Card"
-                              className="p-1 rounded text-[#7A2E3A] hover:bg-[#F8ECEE] transition-colors"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleOpenPreview(cand);
-                                setTimeout(() => window.print(), 300);
-                              }}
-                              title="Print Physical Card"
-                              className="p-1 rounded text-[#806F6F] hover:text-[#3F3030] hover:bg-stone-100 transition-colors"
-                            >
-                              <Printer className="w-4 h-4" />
-                            </button>
+                            {status === 'NOT_REQUESTED' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRequestCard(cand)}
+                                leftIcon={<CreditCard className="w-3 h-3" />}
+                              >
+                                {language === 'ar' ? 'طلب بطاقة' : 'Request'}
+                              </Button>
+                            )}
+                            {status === 'REQUESTED' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleApproveCard(cand)}
+                                leftIcon={<CheckCircle2 className="w-3 h-3 text-blue-600" />}
+                              >
+                                {language === 'ar' ? 'اعتماد' : 'Approve'}
+                              </Button>
+                            )}
+                            {status === 'APPROVED' && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleGenerateCard(cand)}
+                                leftIcon={<Sparkles className="w-3 h-3 text-amber-300" />}
+                              >
+                                {language === 'ar' ? 'توليد وإصدار' : 'Generate'}
+                              </Button>
+                            )}
+                            {status === 'GENERATED' && (
+                              <>
+                                <button
+                                  onClick={() => handleOpenPreview(cand)}
+                                  title="Preview Digital Card"
+                                  className="p-1 rounded text-[#7A2E3A] hover:bg-[#F8ECEE] transition-colors"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleOpenPreview(cand);
+                                    setTimeout(() => window.print(), 300);
+                                  }}
+                                  title="Print Physical Card"
+                                  className="p-1 rounded text-[#806F6F] hover:text-[#3F3030] hover:bg-stone-100 transition-colors"
+                                >
+                                  <Printer className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -606,10 +776,16 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                 <div className="flex items-center gap-3.5 my-auto relative z-10">
                   {/* Photo Frame */}
                   <div className="w-20 h-24 rounded-lg bg-[#FFFCF8] border-2 border-[#C9A24D] shadow-md flex flex-col items-center justify-center text-[#7A2E3A] shrink-0 overflow-hidden relative">
-                    <UserCheck className="w-9 h-9 opacity-80" />
-                    <span className="text-[8px] font-mono font-bold text-[#806F6F] mt-1">VERIFIED</span>
-                    <div className="absolute bottom-0 w-full bg-[#7A2E3A] text-[7px] text-white text-center font-mono py-0.5">
-                      BIOMETRIC
+                    {previewCandidate.photoUrl ? (
+                      <img src={previewCandidate.photoUrl} alt={previewCandidate.fullNameEn} className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <UserCheck className="w-9 h-9 opacity-80" />
+                        <span className="text-[8px] font-mono font-bold text-[#806F6F] mt-1">VERIFIED</span>
+                      </>
+                    )}
+                    <div className="absolute bottom-0 w-full bg-[#7A2E3A] text-[7px] text-white text-center font-mono py-0.5 truncate px-0.5">
+                      {previewCandidate.idCardNumber || 'BIOMETRIC'}
                     </div>
                   </div>
 
@@ -632,7 +808,7 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-4 text-[9px] font-mono text-white/90 pt-0.5">
+                    <div className="grid grid-cols-2 gap-2 text-[9px] font-mono text-white/90 pt-0.5">
                       {config.showApro && (
                         <div>
                           <span className="text-[7px] text-white/60 block">APRO ID:</span>
@@ -645,6 +821,10 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                           <span className="font-bold">{previewCandidate.passportNumber}</span>
                         </div>
                       )}
+                      <div className="col-span-2">
+                        <span className="text-[7px] text-white/60 block">ID CARD SERIAL:</span>
+                        <span className="font-bold text-emerald-300">{previewCandidate.idCardNumber || 'NOT ISSUED YET'}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -665,18 +845,23 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8D9D2]">
-              <Button variant="secondary" size="sm" onClick={() => setIsPreviewModalOpen(false)}>
-                {language === 'ar' ? 'إغلاق' : 'Close'}
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handlePrintCard}
-                leftIcon={<Printer className="w-3.5 h-3.5" />}
-              >
-                {language === 'ar' ? 'طباعة البطاقة' : 'Print Official Badge'}
-              </Button>
+            <div className="flex items-center justify-between pt-2 border-t border-[#E8D9D2]">
+              <div className="text-xs text-[#806F6F]">
+                Status: <span className="font-semibold text-[#3F3030]">{previewCandidate.idCardStatus || 'NOT_REQUESTED'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setIsPreviewModalOpen(false)}>
+                  {language === 'ar' ? 'إغلاق' : 'Close'}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handlePrintCard}
+                  leftIcon={<Printer className="w-3.5 h-3.5" />}
+                >
+                  {language === 'ar' ? 'طباعة البطاقة' : 'Print Official Badge'}
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -686,15 +871,42 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
       <Modal
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
-        title={language === 'ar' ? 'إصدار دفعة بطاقات هوية مهنية' : 'Batch Skill Card Issuance'}
+        title={language === 'ar' ? 'إدارة وإصدار بطاقات الدفعات' : 'Batch Skill Card Operations'}
         maxWidth="md"
       >
         <div className="space-y-4">
           <p className="text-xs text-[#806F6F]">
             {language === 'ar'
-              ? 'اختر دفعة التقييم لإصدار بطاقات الهوية لجميع المرشحين المؤهلين تلقائياً وتجهيز أوامر الطباعة.'
-              : 'Select an assessment cohort to generate cryptographic credential cards for all qualified candidates in a single transaction.'}
+              ? 'اختر دفعة التقييم ونوع الإجراء لتنفيذ العملية على جميع المرشحين المؤهلين تلقائياً.'
+              : 'Select an assessment cohort and the desired lifecycle action to process candidates in a single transaction.'}
           </p>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#3F3030] mb-1">
+              {language === 'ar' ? 'نوع الإجراء الجماعي' : 'Batch Operation Type'}
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { type: 'GENERATE' as const, label: 'Generate & Issue', icon: Sparkles },
+                { type: 'APPROVE' as const, label: 'Batch Approve', icon: CheckCircle2 },
+                { type: 'REQUEST' as const, label: 'Batch Request', icon: CreditCard },
+              ].map(opt => (
+                <button
+                  key={opt.type}
+                  type="button"
+                  onClick={() => setBatchActionType(opt.type)}
+                  className={`p-2.5 rounded-lg border text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+                    batchActionType === opt.type
+                      ? 'border-[#7A2E3A] bg-[#F8ECEE] text-[#7A2E3A] ring-1 ring-[#7A2E3A]'
+                      : 'border-[#E8D9D2] bg-white text-[#806F6F] hover:bg-stone-50'
+                  }`}
+                >
+                  <opt.icon className="w-4 h-4" />
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div>
             <label className="block text-xs font-semibold text-[#3F3030] mb-1">
@@ -715,8 +927,8 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
           </div>
 
           <div className="p-3 bg-[#FBF6E8] rounded-lg border border-amber-200 text-xs text-amber-900">
-            <span className="font-bold block mb-0.5">Configurable / TBC</span>
-            <span>Batch print spooling generates a single high-resolution print PDF conforming to ISO/IEC 7810 card printer drivers.</span>
+            <span className="font-bold block mb-0.5">Central Serial Service Integration</span>
+            <span>Batch generation automatically provisions sequential ID card serial numbers conforming to <code className="font-mono bg-amber-100 px-1 rounded">IDC-SA-2026-XXXXX</code> with guaranteed uniqueness.</span>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8D9D2]">
@@ -730,7 +942,7 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
               onClick={handleRunBatchGeneration}
               leftIcon={<CreditCard className="w-3.5 h-3.5" />}
             >
-              {language === 'ar' ? 'توليد البطاقات' : 'Generate & Queue Batch'}
+              {language === 'ar' ? 'تنفيذ الإجراء' : 'Execute Batch Action'}
             </Button>
           </div>
         </div>

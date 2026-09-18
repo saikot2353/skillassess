@@ -131,6 +131,26 @@ export const LotteryManagementPage: React.FC<LotteryProps> = ({ onNavigate }) =>
     };
 
     StorageService.updateItem(STORAGE_KEYS.ASSESSOR_LOTTERY, newRecord);
+
+    // Synchronize pairings into single source candidate records with HIDDEN anti-bias status
+    const allCandidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
+    const pairingMap = new Map<string, { assessorId: string; assessorName: string }>();
+    pairings.forEach(p => pairingMap.set(p.candidateId, { assessorId: p.assessorId, assessorName: p.assessorName }));
+
+    const updatedCandidates = allCandidates.map(c => {
+      if (pairingMap.has(c.id)) {
+        const p = pairingMap.get(c.id)!;
+        return {
+          ...c,
+          assessorId: p.assessorId,
+          assessorName: p.assessorName,
+          assessorLotteryStatus: 'HIDDEN' as const,
+        };
+      }
+      return c;
+    });
+    StorageService.set(STORAGE_KEYS.CANDIDATES, updatedCandidates);
+
     AuditService.log('GENERATE_LOTTERY', 'ASSESSOR_LOTTERY', `Executed blind assessor lottery allocation for ${ctr.nameEn} (${newRecord.totalCandidates} pairings generated)`, newRecord.id, 'SUCCESS');
     showToast(`Lottery generated for ${ctr.nameEn} with ${newRecord.totalCandidates} blind pairings`, 'success');
     setIsRunAssessorOpen(false);
@@ -145,6 +165,21 @@ export const LotteryManagementPage: React.FC<LotteryProps> = ({ onNavigate }) =>
       status: nextStatus === 'RELEASED' ? 'CONFIRMED' : 'GENERATED',
     };
     StorageService.updateItem(STORAGE_KEYS.ASSESSOR_LOTTERY, updated);
+
+    // Synchronize release status with paired candidate records
+    const allCandidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
+    const pairedCandidateIds = new Set(lottery.pairings.map(p => p.candidateId));
+    const updatedCandidates = allCandidates.map(c => {
+      if (pairedCandidateIds.has(c.id)) {
+        return {
+          ...c,
+          assessorLotteryStatus: nextStatus,
+        };
+      }
+      return c;
+    });
+    StorageService.set(STORAGE_KEYS.CANDIDATES, updatedCandidates);
+
     AuditService.log(
       'RELEASE_LOTTERY',
       'ASSESSOR_LOTTERY',

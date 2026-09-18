@@ -24,7 +24,10 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
+  const userCountryId = user?.countryId || 'cnt-sa';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
+  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
+  const isAssessor = user?.role === 'ASSESSOR';
 
   const [activeTab, setActiveTab] = useState<string>('daily');
   const [results, setResults] = useState<Result[]>([]);
@@ -54,6 +57,9 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
   useEffect(() => {
     loadData();
 
+    if (isCountryAccount) {
+      setSelectedCountry(userCountryId);
+    }
     if (isCenterAdmin) {
       setSelectedCenter(userCenterId);
     }
@@ -64,25 +70,28 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
     if (tabParam && ['daily', 'monthly', 'center', 'assessor', 'occupation', 'batch', 'result'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
-  }, [userCenterId, isCenterAdmin]);
+  }, [userCenterId, userCountryId, isCenterAdmin, isCountryAccount]);
 
-  // Filtered Centers based on Country
+  // Filtered Centers based on Country and Role Scoping
   const filteredCenters = useMemo(() => {
     if (isCenterAdmin) return centers.filter(c => c.id === userCenterId);
+    if (isCountryAccount) return centers.filter(c => c.countryId === userCountryId);
     if (selectedCountry === 'ALL') return centers;
     return centers.filter(c => c.countryId === selectedCountry);
-  }, [centers, selectedCountry, isCenterAdmin, userCenterId]);
+  }, [centers, selectedCountry, isCenterAdmin, isCountryAccount, userCenterId, userCountryId]);
 
-  // Filtered Results
+  // Filtered Results based on Role Scoping and Active Filters
   const filteredResults = useMemo(() => {
     return results.filter(r => {
+      if (isAssessor && r.assessorId !== user?.id && r.assessorName !== user?.name) return false;
       if (isCenterAdmin && r.centerId !== userCenterId) return false;
+      if (isCountryAccount && r.countryId !== userCountryId) return false;
       if (selectedCountry !== 'ALL' && r.countryId !== selectedCountry) return false;
       if (selectedCenter !== 'ALL' && r.centerId !== selectedCenter) return false;
       if (selectedOccupation !== 'ALL' && r.occupation !== selectedOccupation) return false;
       return true;
     });
-  }, [results, selectedCountry, selectedCenter, selectedOccupation, isCenterAdmin, userCenterId]);
+  }, [results, selectedCountry, selectedCenter, selectedOccupation, isCenterAdmin, isCountryAccount, isAssessor, user, userCountryId, userCenterId]);
 
   // Distinct Occupations
   const occupations = useMemo(() => {
@@ -154,9 +163,19 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
     });
   }, [filteredCenters, results, countries, language]);
 
-  // Assessor-wise aggregated data
+  // Assessor-wise aggregated data (Role-Scoped)
   const assessorReportData = useMemo(() => {
-    const assessors = users.filter(u => u.role === 'ASSESSOR');
+    const assessors = users.filter(u => {
+      if (u.role !== 'ASSESSOR') return false;
+      if (isAssessor) return u.id === user?.id;
+      if (isCenterAdmin) return u.centerId === userCenterId;
+      if (isCountryAccount) {
+        const countryCenterIds = new Set(filteredCenters.map(c => c.id));
+        return u.countryId === userCountryId || (u.centerId && countryCenterIds.has(u.centerId));
+      }
+      return true;
+    });
+
     return assessors.map(assessor => {
       const assessorAssessments = assessments.filter(a => a.assessorId === assessor.id);
       const total = assessorAssessments.length;
@@ -178,7 +197,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
         calibrationScore: `${Math.floor(92 + (assessor.id.charCodeAt(assessor.id.length - 1) % 7))}%`,
       };
     });
-  }, [users, assessments, centers, language]);
+  }, [users, assessments, centers, language, isAssessor, isCenterAdmin, isCountryAccount, user, userCenterId, userCountryId, filteredCenters]);
 
   // Occupation-wise aggregated data
   const occupationReportData = useMemo(() => {
@@ -203,9 +222,18 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
     });
   }, [occupations, results]);
 
-  // Batch-wise aggregated data
+  // Batch-wise aggregated data (Role-Scoped)
   const batchReportData = useMemo(() => {
-    return batches.map(batch => {
+    const targetBatches = batches.filter(b => {
+      if (isCenterAdmin) return b.centerId === userCenterId;
+      if (isCountryAccount) {
+        const countryCenterIds = new Set(filteredCenters.map(c => c.id));
+        return countryCenterIds.has(b.centerId);
+      }
+      return true;
+    });
+
+    return targetBatches.map(batch => {
       const center = centers.find(c => c.id === batch.centerId);
       const batchCandidates = candidates.filter(c => c.batchId === batch.id);
       const evaluated = batchCandidates.filter(c => c.status === 'COMPLETED').length;
@@ -226,7 +254,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
         status: batch.status,
       };
     });
-  }, [batches, centers, candidates, results, language]);
+  }, [batches, centers, candidates, results, language, isCenterAdmin, isCountryAccount, userCenterId, userCountryId, filteredCenters]);
 
   // Daily aggregated data (by center)
   const dailyReportData = useMemo(() => {
@@ -438,22 +466,29 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
           ) : (
             <>
               {/* Country Filter */}
-              <div className="flex items-center gap-1.5 bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg px-2.5 py-1 text-xs">
-                <Globe2 className="w-3.5 h-3.5 text-[#806F6F]" />
-                <select
-                  className="bg-transparent border-none outline-none text-[#3F3030] font-medium cursor-pointer"
-                  value={selectedCountry}
-                  onChange={(e) => {
-                    setSelectedCountry(e.target.value);
-                    setSelectedCenter('ALL');
-                  }}
-                >
-                  <option value="ALL">{language === 'ar' ? 'كافة الدول' : 'All Countries'}</option>
-                  {countries.map(c => (
-                    <option key={c.id} value={c.id}>{language === 'ar' ? c.nameAr : c.nameEn}</option>
-                  ))}
-                </select>
-              </div>
+              {isCountryAccount ? (
+                <div className="flex items-center gap-1.5 bg-[#FFFCF8] border border-[#7A2E3A]/30 rounded-lg px-2.5 py-1 text-xs text-[#7A2E3A] font-semibold">
+                  <Globe2 className="w-3.5 h-3.5 text-[#7A2E3A]" />
+                  <span>{countries.find(c => c.id === userCountryId)?.nameEn || 'Saudi Arabia'}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg px-2.5 py-1 text-xs">
+                  <Globe2 className="w-3.5 h-3.5 text-[#806F6F]" />
+                  <select
+                    className="bg-transparent border-none outline-none text-[#3F3030] font-medium cursor-pointer"
+                    value={selectedCountry}
+                    onChange={(e) => {
+                      setSelectedCountry(e.target.value);
+                      setSelectedCenter('ALL');
+                    }}
+                  >
+                    <option value="ALL">{language === 'ar' ? 'كافة الدول' : 'All Countries'}</option>
+                    {countries.map(c => (
+                      <option key={c.id} value={c.id}>{language === 'ar' ? c.nameAr : c.nameEn}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Center Filter */}
               <div className="flex items-center gap-1.5 bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg px-2.5 py-1 text-xs">

@@ -67,7 +67,7 @@ export const AssessorEvaluationPage: React.FC<AssessorEvaluationPageProps> = ({ 
   useEffect(() => {
     const allCandidates = storageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
     const myCandidates = allCandidates.filter((c: Candidate) => 
-      c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
+      user?.role === 'SUPER_ADMIN' || c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
     );
     setCandidates(myCandidates);
 
@@ -169,9 +169,20 @@ export const AssessorEvaluationPage: React.FC<AssessorEvaluationPageProps> = ({ 
 
   const totalPercentage = totalMaxScore > 0 ? Math.round((totalScore / totalMaxScore) * 100) : 0;
   const isPassing = totalPercentage >= 70;
+  const isPracticalCompleted = candidate?.practicalStatus === 'COMPLETED' || candidate?.status === 'PRACTICAL_COMPLETED' || candidate?.status === 'EVALUATION_PENDING';
 
   const handleConfirmAndLock = () => {
     if (!candidate || !user) return;
+
+    if (candidate.status === 'LOCKED' || candidate.resultLocked || isLocked) {
+      showToast(isRTL ? 'هذا التقييم مقفل رقابياً ولا يمكن تعديله أو إعادة إرساله.' : 'This evaluation is permanently locked under regulatory anti-tampering rules.', 'error');
+      return;
+    }
+
+    if (!isPracticalCompleted) {
+      showToast(isRTL ? 'يجب إكمال الاختبار العملي في ورشة التقييم أولاً قبل اعتماد الدرجات.' : 'Prerequisite: Candidate practical exam must be completed before submitting evaluation marks.', 'error');
+      return;
+    }
 
     if (!uploadedSheetUrl) {
       showToast(isRTL ? 'يجب رفع صورة نموذج التقييم الورقي الموقع أولاً' : 'Uploading signed evaluation sheet is mandatory before submission', 'error');
@@ -625,8 +636,20 @@ export const AssessorEvaluationPage: React.FC<AssessorEvaluationPageProps> = ({ 
           {!isLocked ? (
             <button
               type="button"
-              onClick={() => setShowConfirmModal(true)}
-              className="px-6 py-3 rounded-xl bg-[#C9A24D] hover:bg-[#B38F3E] text-[#3F3030] font-black text-xs transition-all shadow-lg flex items-center gap-2"
+              disabled={!isPracticalCompleted}
+              onClick={() => {
+                if (!isPracticalCompleted) {
+                  showToast(isRTL ? 'لا يمكن اعتماد التقييم: يجب اكتمال الاختبار العملي أولاً' : 'Prerequisite required: Practical exam must be marked COMPLETED first', 'error');
+                  return;
+                }
+                setShowConfirmModal(true);
+              }}
+              className={`px-6 py-3 rounded-xl font-black text-xs transition-all shadow-lg flex items-center gap-2 ${
+                isPracticalCompleted 
+                  ? 'bg-[#C9A24D] hover:bg-[#B38F3E] text-[#3F3030] cursor-pointer' 
+                  : 'bg-stone-600 text-stone-300 opacity-60 cursor-not-allowed'
+              }`}
+              title={!isPracticalCompleted ? (isRTL ? 'الاختبار العملي لم يكتمل بعد' : 'Practical Exam not completed') : undefined}
             >
               <Lock className="w-4 h-4" />
               <span>{isRTL ? 'تأكيد وقفل التقييم نهائياً' : 'Confirm & Lock Evaluation'}</span>

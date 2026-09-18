@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   FileCode, Layers, FileText, CheckCircle2, Clock, Wrench, Shield,
   Plus, Search, Filter, Eye, Download, Upload, Trash2, Edit2, Save,
-  CheckCircle, ArrowRight, UserCheck, AlertTriangle
+  CheckCircle, ArrowRight, UserCheck, AlertTriangle, FileSpreadsheet,
+  Check, XCircle, Power, FileUp
 } from 'lucide-react';
 import { PracticalTask, Worksheet, TaskAllocation, TaskDifficulty, Candidate } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
@@ -79,6 +80,28 @@ export const PracticalTasksPage: React.FC<PracticalTasksProps> = ({ onNavigate }
     candidateId: '',
     taskId: '',
   });
+
+  // Excel Bulk Import Modal
+  interface ParsedTaskRow {
+    code: string;
+    titleEn: string;
+    titleAr: string;
+    occupation: string;
+    difficulty: TaskDifficulty;
+    maxScore: number;
+    passingScore: number;
+    durationMinutes: number;
+    situation: string;
+    toolsAndEquipment: string[];
+    steps: string[];
+    isValid: boolean;
+    error?: string;
+  }
+
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [excelFileName, setExcelFileName] = useState<string>('');
+  const [parsedRows, setParsedRows] = useState<ParsedTaskRow[]>([]);
+  const [isParsingExcel, setIsParsingExcel] = useState(false);
 
   const loadData = () => {
     setTasks(StorageService.get<PracticalTask[]>(STORAGE_KEYS.TASKS, []));
@@ -273,6 +296,150 @@ export const PracticalTasksPage: React.FC<PracticalTasksProps> = ({ onNavigate }
     loadData();
   };
 
+  // --- Task Status Activation Toggle ---
+  const handleToggleTaskStatus = (tsk: PracticalTask) => {
+    const nextStatus = tsk.status === 'ACTIVE' ? 'DRAFT' : 'ACTIVE';
+    const updated: PracticalTask = { ...tsk, status: nextStatus, updatedAt: new Date().toISOString() };
+    StorageService.updateItem(STORAGE_KEYS.TASKS, updated);
+    AuditService.log('UPDATE', 'TASK', `Status changed for task ${tsk.code} (${tsk.titleEn}) to ${nextStatus}`, tsk.id, 'SUCCESS');
+    showToast(`Task ${tsk.code} status changed to ${nextStatus}`, 'info');
+    if (viewingTask?.id === tsk.id) setViewingTask(updated);
+    loadData();
+  };
+
+  // --- Excel Task Pool Import Handlers ---
+  const parseTaskCsvContent = (csvText: string) => {
+    const lines = csvText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length <= 1) {
+      showToast('Uploaded file contains no data rows', 'error');
+      return;
+    }
+
+    const existingCodes = new Set(tasks.map(t => t.code.toUpperCase()));
+    const results: ParsedTaskRow[] = [];
+
+    // Parse data rows (skip header)
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const parts = line.split(',');
+      const code = (parts[0] || '').trim().toUpperCase() || `TSK-${Math.floor(1000 + Math.random() * 9000)}`;
+      const titleEn = (parts[1] || '').trim();
+      const titleAr = (parts[2] || '').trim() || titleEn;
+      const occupation = (parts[3] || 'Electrical Installation').trim();
+      const diffRaw = (parts[4] || 'INTERMEDIATE').trim().toUpperCase();
+      const difficulty: TaskDifficulty = (['FOUNDATIONAL', 'INTERMEDIATE', 'ADVANCED'].includes(diffRaw) ? diffRaw : 'INTERMEDIATE') as TaskDifficulty;
+      const maxScore = Number((parts[5] || '100').trim()) || 100;
+      const passingScore = Number((parts[6] || '60').trim()) || 60;
+      const durationMinutes = Number((parts[7] || '45').trim()) || 45;
+      const tools = (parts[8] || 'Digital Multimeter; Safety Gear').split(';').map(s => s.trim()).filter(Boolean);
+      const steps = (parts[9] || 'Verify zero potential; Execute inspection; Record parameters').split(';').map(s => s.trim()).filter(Boolean);
+
+      let error = '';
+      if (!titleEn) {
+        error = 'Missing task title';
+      } else if (existingCodes.has(code)) {
+        error = `Code ${code} already exists in task pool`;
+      } else if (passingScore > maxScore) {
+        error = `Passing score (${passingScore}) exceeds max score (${maxScore})`;
+      } else if (durationMinutes <= 0) {
+        error = 'Invalid duration';
+      }
+
+      results.push({
+        code,
+        titleEn,
+        titleAr,
+        occupation,
+        difficulty,
+        maxScore,
+        passingScore,
+        durationMinutes,
+        situation: `Practical scenario for ${titleEn}. Candidate demonstrates competent execution under standard safety regulations.`,
+        toolsAndEquipment: tools,
+        steps,
+        isValid: !error,
+        error: error || undefined,
+      });
+    }
+
+    setParsedRows(results);
+  };
+
+  const handleLoadSampleExcel = () => {
+    setExcelFileName('Practical_Task_Pool_Standard_Template.xlsx');
+    const sample = `code,titleEn,titleAr,occupation,difficulty,maxScore,passingScore,durationMinutes,tools,steps
+TSK-7101,Three-Phase Induction Motor Terminal Reversal,عكس أطراف محرك حثي ثلاثي الأطوار,Electrical Installation,ADVANCED,100,70,50,Digital Multimeter; Insulation Tester; Phase Rotation Meter,De-energize main breaker; Swap line phase connections L1 and L3; Measure insulation resistance; Verify rotation safely
+TSK-7102,Dual-Stage Air Filter & Damper Servicing,صيانة فلتر الهواء ومخمد التدفق ثنائي المرحلة,HVAC Maintenance,INTERMEDIATE,100,60,40,Differential Pressure Manometer; Fin Comb; Clamp Meter,Isolate fan motor power; Measure pressure drop across dirty filter; Replace primary media; Clean and lubricate linkages
+TSK-7103,Fillet Weld Inspection with Bridge Cam Gauge,فحص اللحام الزاوي بمقياس الكامة الجسرية,Welding & Fabrication,FOUNDATIONAL,100,60,30,Bridge Cam Gauge; Wire Brush; LED Torch,Clean weld slag thoroughly; Measure throat thickness; Measure leg length; Check for undercut defects
+TSK-7104,BACnet Temperature Transmitter Re-addressing,إعادة عنونة مرسل درجة الحرارة عبر بروتوكول باكنت,BMS Automation,ADVANCED,100,75,45,Field Calibrator; MS/TP Adapter; Precision Screwdriver,Set DIP switches to assigned MAC address; Connect to MSTP field bus; Verify sensor online; Calibrate 0-10V signal`;
+    parseTaskCsvContent(sample);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setExcelFileName(file.name);
+    setIsParsingExcel(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      parseTaskCsvContent(text || '');
+      setIsParsingExcel(false);
+    };
+    reader.onerror = () => {
+      setIsParsingExcel(false);
+      showToast('Failed to read selected file', 'error');
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmImport = () => {
+    const validRows = parsedRows.filter(r => r.isValid);
+    if (validRows.length === 0) {
+      showToast('No valid task rows to import', 'error');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const newTasks: PracticalTask[] = validRows.map((r, idx) => ({
+      id: `tsk-imp-${Date.now()}-${idx}`,
+      code: r.code,
+      titleEn: r.titleEn,
+      titleAr: r.titleAr || r.titleEn,
+      occupation: r.occupation,
+      difficulty: r.difficulty,
+      situation: r.situation,
+      practicalWork: r.situation,
+      toolsAndEquipment: r.toolsAndEquipment,
+      steps: r.steps,
+      maxScore: r.maxScore,
+      passingScore: r.passingScore,
+      durationMinutes: r.durationMinutes,
+      status: 'ACTIVE',
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    const existing = StorageService.get<PracticalTask[]>(STORAGE_KEYS.TASKS, []);
+    const merged = [...newTasks, ...existing];
+    StorageService.set(STORAGE_KEYS.TASKS, merged);
+
+    AuditService.log(
+      'CREATE',
+      'TASK',
+      `Bulk imported ${newTasks.length} practical tasks from Excel spreadsheet (${excelFileName})`,
+      newTasks[0]?.id || 'TASKS',
+      'SUCCESS'
+    );
+
+    showToast(`Successfully imported ${newTasks.length} tasks into task pool!`, 'success');
+    setIsExcelModalOpen(false);
+    setParsedRows([]);
+    setExcelFileName('');
+    loadData();
+  };
+
   const getDifficultyBadge = (diff: TaskDifficulty) => {
     switch (diff) {
       case 'ADVANCED':
@@ -347,7 +514,16 @@ export const PracticalTasksPage: React.FC<PracticalTasksProps> = ({ onNavigate }
     {
       key: 'status',
       header: t.common.status,
-      render: tsk => <StatusBadge status={tsk.status} />,
+      render: tsk => (
+        <button
+          type="button"
+          onClick={() => handleToggleTaskStatus(tsk)}
+          title={tsk.status === 'ACTIVE' ? 'Click to set Draft' : 'Click to activate'}
+          className="cursor-pointer group"
+        >
+          <StatusBadge status={tsk.status} />
+        </button>
+      ),
     },
     {
       key: 'actions',
@@ -363,6 +539,14 @@ export const PracticalTasksPage: React.FC<PracticalTasksProps> = ({ onNavigate }
             title={language === 'ar' ? 'عرض المعايير والخطوات' : 'View Rubric & Steps'}
           >
             <Eye className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleToggleTaskStatus(tsk)}
+            className={`p-1.5 rounded transition-colors ${tsk.status === 'ACTIVE' ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+            title={tsk.status === 'ACTIVE' ? 'Deactivate (Set Draft)' : 'Activate Task'}
+          >
+            <Power className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
@@ -394,9 +578,14 @@ export const PracticalTasksPage: React.FC<PracticalTasksProps> = ({ onNavigate }
         ]}
         actions={
           activeTab === 'pool' ? (
-            <Button variant="primary" size="sm" onClick={handleOpenAddTask} leftIcon={<Plus className="w-4 h-4" />}>
-              {language === 'ar' ? 'إضافة مهمة عملية' : 'Create Task'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsExcelModalOpen(true)} leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-700" />}>
+                {language === 'ar' ? 'استيراد مهام إكسل' : 'Import Tasks (Excel)'}
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleOpenAddTask} leftIcon={<Plus className="w-4 h-4" />}>
+                {language === 'ar' ? 'إضافة مهمة عملية' : 'Create Task'}
+              </Button>
+            </div>
           ) : activeTab === 'worksheets' ? (
             <Button variant="primary" size="sm" onClick={handleOpenUploadWorksheet} leftIcon={<Upload className="w-4 h-4" />}>
               {language === 'ar' ? 'رفع ورقة تقييم' : 'Upload Worksheet'}
@@ -905,6 +1094,149 @@ export const PracticalTasksPage: React.FC<PracticalTasksProps> = ({ onNavigate }
             }))}
           />
         </form>
+      </Modal>
+
+      {/* Excel Task Pool Bulk Upload & Validation Modal */}
+      <Modal
+        isOpen={isExcelModalOpen}
+        onClose={() => {
+          setIsExcelModalOpen(false);
+          setParsedRows([]);
+          setExcelFileName('');
+        }}
+        maxWidth="2xl"
+        icon={<FileSpreadsheet className="w-6 h-6 text-emerald-700" />}
+        title={language === 'ar' ? 'استيراد بنك المهام العملية من إكسل / CSV' : 'Bulk Import Practical Tasks (Excel / CSV)'}
+        subtitle={language === 'ar' ? 'رفع جدول المهام مع التدقيق الفوري للرموز والمعايير ومستويات الصعوبة' : 'Upload spreadsheet with pre-import validation, uniqueness check, and rubric verification'}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsExcelModalOpen(false);
+                setParsedRows([]);
+                setExcelFileName('');
+              }}
+            >
+              {t.common.cancel}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleConfirmImport}
+              disabled={parsedRows.filter(r => r.isValid).length === 0}
+              leftIcon={<Save className="w-4 h-4" />}
+            >
+              {language === 'ar' 
+                ? `اعتماد واستيراد (${parsedRows.filter(r => r.isValid).length}) مهمة`
+                : `Validate & Import (${parsedRows.filter(r => r.isValid).length}) Tasks`}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Upload Area & Quick Sample */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-stone-50 border border-[#E8D9D2] rounded-xl">
+            <div className="flex items-center gap-3">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#7A2E3A] bg-white border border-[#7A2E3A] rounded-lg hover:bg-[#F8ECEE] transition-colors shadow-xs">
+                  <FileUp className="w-3.5 h-3.5" />
+                  {language === 'ar' ? 'اختر ملف CSV / Excel' : 'Choose CSV / Excel File'}
+                </span>
+              </label>
+              <span className="text-xs text-[#806F6F] font-mono truncate max-w-[200px]">
+                {excelFileName || (language === 'ar' ? 'لم يتم اختيار ملف' : 'No file selected')}
+              </span>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleLoadSampleExcel}
+              leftIcon={<Download className="w-3.5 h-3.5" />}
+            >
+              {language === 'ar' ? 'تحميل نموذج تجريبي جاهز' : 'Load Demo Excel Template'}
+            </Button>
+          </div>
+
+          {/* Validation Metrics */}
+          {parsedRows.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-2.5 rounded-lg bg-[#FFFCF8] border border-[#E8D9D2] text-center">
+                <span className="text-[10px] text-[#806F6F] uppercase tracking-wider block">Total Rows</span>
+                <span className="text-base font-bold text-[#3F3030]">{parsedRows.length}</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-center">
+                <span className="text-[10px] text-emerald-800 uppercase tracking-wider block">Ready to Import</span>
+                <span className="text-base font-bold text-emerald-700">{parsedRows.filter(r => r.isValid).length}</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-center">
+                <span className="text-[10px] text-rose-800 uppercase tracking-wider block">Validation Errors</span>
+                <span className="text-base font-bold text-rose-700">{parsedRows.filter(r => !r.isValid).length}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Tabular Preview */}
+          {parsedRows.length > 0 ? (
+            <div className="border border-[#E8D9D2] rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+              <table className="w-full text-xs text-start border-collapse">
+                <thead className="bg-[#F8ECEE] text-[#7A2E3A] sticky top-0 z-10 border-b border-[#E8D9D2]">
+                  <tr>
+                    <th className="p-2 text-start font-semibold">Code</th>
+                    <th className="p-2 text-start font-semibold">Title</th>
+                    <th className="p-2 text-start font-semibold">Occupation</th>
+                    <th className="p-2 text-start font-semibold">Diff.</th>
+                    <th className="p-2 text-start font-semibold">Pass/Max</th>
+                    <th className="p-2 text-center font-semibold">Validation</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 bg-white">
+                  {parsedRows.map((row, idx) => (
+                    <tr key={idx} className={row.isValid ? 'hover:bg-stone-50' : 'bg-rose-50/40'}>
+                      <td className="p-2 font-mono font-bold text-[#7A2E3A]">{row.code}</td>
+                      <td className="p-2 font-medium text-[#3F3030] max-w-[160px] truncate" title={row.titleEn}>
+                        {row.titleEn}
+                      </td>
+                      <td className="p-2 text-[#806F6F]">{row.occupation}</td>
+                      <td className="p-2">
+                        <Badge variant={row.difficulty === 'ADVANCED' ? 'danger' : row.difficulty === 'INTERMEDIATE' ? 'gold' : 'success'} size="sm">
+                          {row.difficulty}
+                        </Badge>
+                      </td>
+                      <td className="p-2 font-mono text-[#3F3030]">{row.passingScore} / {row.maxScore}</td>
+                      <td className="p-2 text-center">
+                        {row.isValid ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
+                            <Check className="w-3.5 h-3.5" /> Valid
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-rose-700 font-medium" title={row.error}>
+                            <XCircle className="w-3.5 h-3.5" /> {row.error}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-[#806F6F] border border-dashed border-[#E8D9D2] rounded-xl bg-[#FFFCF8]">
+              <FileSpreadsheet className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+              <p className="text-xs font-medium">No spreadsheet data loaded yet.</p>
+              <p className="text-[11px] text-stone-400 mt-0.5">Click "Load Demo Excel Template" or select a file above to preview.</p>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

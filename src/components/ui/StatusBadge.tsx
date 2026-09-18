@@ -19,6 +19,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
     case 'PUBLISHED':
     case 'PASS':
     case 'VERIFIED':
+    case 'RESOLVED':
+    case 'NORMAL':
+    case 'ENROLLED':
       variant = 'success';
       break;
 
@@ -26,17 +29,28 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
     case 'PENDING_APPROVAL':
     case 'PENDING_AUDIT':
     case 'SCHEDULED':
+    case 'ACTION_REQUIRED':
+    case 'REVIEW_REQUIRED':
+    case 'VARIANCE_DETECTED':
       variant = 'warning';
       break;
 
     case 'IN_PROGRESS':
     case 'IN_ASSESSMENT':
+    case 'UNDER_REVIEW':
+    case 'SUBMITTED':
       variant = 'info';
       break;
 
     case 'EVALUATED':
     case 'LOCKED':
+    case 'CORRECTED':
+    case 'ATTENTION':
       variant = 'gold';
+      break;
+
+    case 'OPEN':
+      variant = 'maroon';
       break;
 
     case 'INACTIVE':
@@ -48,6 +62,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
       variant = 'danger';
       break;
 
+    case 'CLOSED':
     case 'DRAFT':
     case 'REGISTERED':
     default:

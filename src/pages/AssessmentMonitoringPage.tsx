@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Activity, Monitor, Wrench, Image as ImageIcon, AlertTriangle, 
   CheckCircle2, Clock, Search, Filter, Eye, RefreshCw, Radio,
-  ShieldCheck, Check, X, Camera, Laptop, Award, Lock, Play, ChevronRight, FileText
+  ShieldCheck, Check, X, Camera, Laptop, Award, Lock, Play, ChevronRight, FileText,
+  Shield
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
@@ -16,6 +17,7 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
 import { Candidate, Batch, Schedule, User, PracticalTask, AssessorLottery, LiveActivityEvent, EvidenceItem } from '../types';
+import { AssessmentTraceabilityModal } from '../components/AssessmentTraceabilityModal';
 
 export interface AssessmentMonitoringPageProps {
   onNavigate?: (path: string) => void;
@@ -46,6 +48,9 @@ export const AssessmentMonitoringPage: React.FC<AssessmentMonitoringPageProps> =
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBatch, setSelectedBatch] = useState('ALL');
   const [selectedOccupation, setSelectedOccupation] = useState('ALL');
+
+  // Traceability Modal
+  const [selectedTraceabilityCandidateId, setSelectedTraceabilityCandidateId] = useState<string | null>(null);
 
   // Modals
   const [viewingEvidence, setViewingEvidence] = useState<{
@@ -567,6 +572,7 @@ export const AssessmentMonitoringPage: React.FC<AssessmentMonitoringPageProps> =
                     <th className="py-3 px-4 text-center">{language === 'ar' ? 'اختبار CBT' : 'CBT Status'}</th>
                     <th className="py-3 px-4 text-center">{language === 'ar' ? 'الورشة العملية' : 'Practical Bay'}</th>
                     <th className="py-3 px-4 text-center">{language === 'ar' ? 'النتيجة والإقفال' : 'Result State'}</th>
+                    <th className="py-3 px-4 text-end">{language === 'ar' ? 'سلسلة التتبع' : 'Traceability'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E8E4DC]">
@@ -633,6 +639,17 @@ export const AssessmentMonitoringPage: React.FC<AssessmentMonitoringPageProps> =
                         ) : (
                           <span className="text-xs text-[#7C756D]">{language === 'ar' ? 'قيد التقييم' : 'In Review'}</span>
                         )}
+                      </td>
+                      <td className="py-3 px-4 text-end">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTraceabilityCandidateId(cand.id)}
+                          className="px-2 py-1 rounded text-xs font-semibold text-[#7A2E3A] bg-[#F8ECEE] hover:bg-[#7A2E3A] hover:text-white transition-colors inline-flex items-center gap-1 border border-[#7A2E3A]/20"
+                          title="View ISO 17024 Audit Lifecycle"
+                        >
+                          <Shield className="w-3 h-3" />
+                          <span>{language === 'ar' ? 'المسار الرقابي' : 'ISO Trail'}</span>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1158,6 +1175,15 @@ export const AssessmentMonitoringPage: React.FC<AssessmentMonitoringPageProps> =
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Assessment Traceability Dossier Modal */}
+      {selectedTraceabilityCandidateId && (
+        <AssessmentTraceabilityModal
+          isOpen={!!selectedTraceabilityCandidateId}
+          onClose={() => setSelectedTraceabilityCandidateId(null)}
+          candidateId={selectedTraceabilityCandidateId}
+        />
       )}
     </div>
   );

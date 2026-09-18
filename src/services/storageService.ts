@@ -5,7 +5,7 @@ import {
   DEMO_ASSESSMENTS, DEMO_RESULTS, DEMO_NOTIFICATIONS, DEMO_AUDIT_LOGS,
   DEMO_COMPLAINTS, DEMO_LIVE_ACTIVITY, DEMO_APRO_CONFIG, DEMO_SERIAL_CONFIG,
   DEMO_ASSESSMENT_SETTINGS, DEMO_IDCARD_CONFIG, DEMO_RESERVATIONS,
-  DEMO_EVALUATION_RATINGS, DEMO_EVALUATION_SHEETS
+  DEMO_EVALUATION_RATINGS, DEMO_EVALUATION_SHEETS, DEMO_VARIANCE_RECORDS
 } from './demoData';
 import { SystemSettings } from '../types';
 
@@ -27,6 +27,7 @@ export const STORAGE_KEYS = {
   RESULTS: 'skillassess360_results',
   EVALUATION_RATINGS: 'skillassess360_evaluation_ratings',
   EVALUATION_SHEETS: 'skillassess360_evaluation_sheets',
+  VARIANCE_RECORDS: 'skillassess360_variance_records',
   NOTIFICATIONS: 'skillassess360_notifications',
   AUDIT: 'skillassess360_audit',
   AUDIT_LOGS: 'skillassess360_audit',
@@ -36,6 +37,8 @@ export const STORAGE_KEYS = {
   CONFIG_SERIAL: 'skillassess360_config_serial',
   CONFIG_ASSESSMENT: 'skillassess360_config_assessment',
   CONFIG_IDCARD: 'skillassess360_config_idcard',
+  CONFIG_TASKS: 'skillassess360_config_tasks',
+  CONFIG_NOTIFICATIONS: 'skillassess360_config_notifications',
   SETTINGS: 'skillassess360_settings',
   AUTH: 'skillassess360_auth',
   LANG: 'skillassess360_lang',
@@ -161,6 +164,9 @@ export class StorageService {
     }
     if (!this.hasKey(STORAGE_KEYS.EVALUATION_SHEETS)) {
       this.set(STORAGE_KEYS.EVALUATION_SHEETS, DEMO_EVALUATION_SHEETS);
+    }
+    if (!this.hasKey(STORAGE_KEYS.VARIANCE_RECORDS)) {
+      this.set(STORAGE_KEYS.VARIANCE_RECORDS, DEMO_VARIANCE_RECORDS);
     }
     if (!this.hasKey(STORAGE_KEYS.COMPLAINTS)) {
       this.set(STORAGE_KEYS.COMPLAINTS, DEMO_COMPLAINTS);

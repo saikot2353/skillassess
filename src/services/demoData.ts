@@ -3,7 +3,7 @@ import {
   PracticalTask, Worksheet, TaskAllocation, AssessorLottery, TaskLottery,
   Assessment, Result, Notification, AuditLog, Complaint, LiveActivityEvent,
   APROConfig, SerialConfig, AssessmentSettingsConfig, IDCardConfig, Reservation,
-  EvaluationRubricSection, CandidateEvaluationRating, EvaluationSheet
+  EvaluationRubricSection, CandidateEvaluationRating, EvaluationSheet, AssessmentVarianceRecord
 } from '../types';
 
 export const DEMO_USERS: User[] = [
@@ -660,7 +660,10 @@ export const DEMO_CANDIDATES: Candidate[] = [
     evaluationStatus: 'IN_PROGRESS',
     status: 'IN_ASSESSMENT',
     registeredAt: '2026-09-10T08:00:00Z',
-    enrolledAt: '2026-09-18T08:45:00Z'
+    enrolledAt: '2026-09-18T08:45:00Z',
+    idCardStatus: 'GENERATED',
+    idCardNumber: 'IDC-SA-2026-00481',
+    idCardGeneratedAt: '2026-09-18T12:00:00Z'
   },
   {
     id: 'can-2',
@@ -690,7 +693,8 @@ export const DEMO_CANDIDATES: Candidate[] = [
     assessorLotteryStatus: 'RELEASED',
     evidenceStatus: 'NOT_UPLOADED',
     status: 'ASSIGNED',
-    registeredAt: '2026-09-10T08:30:00Z'
+    registeredAt: '2026-09-10T08:30:00Z',
+    idCardStatus: 'REQUESTED'
   },
   {
     id: 'can-3',
@@ -744,7 +748,8 @@ export const DEMO_CANDIDATES: Candidate[] = [
     status: 'EVALUATION_PENDING',
     resultStatus: 'PENDING',
     registeredAt: '2026-09-11T09:10:00Z',
-    enrolledAt: '2026-09-19T13:45:00Z'
+    enrolledAt: '2026-09-19T13:45:00Z',
+    idCardStatus: 'APPROVED'
   },
   {
     id: 'can-4',
@@ -776,7 +781,10 @@ export const DEMO_CANDIDATES: Candidate[] = [
     status: 'EVALUATED',
     resultStatus: 'PASS',
     registeredAt: '2026-09-12T10:00:00Z',
-    enrolledAt: '2026-09-20T08:00:00Z'
+    enrolledAt: '2026-09-20T08:00:00Z',
+    idCardStatus: 'GENERATED',
+    idCardNumber: 'IDC-SA-2026-00482',
+    idCardGeneratedAt: '2026-09-17T15:30:00Z'
   },
   {
     id: 'can-5',
@@ -789,8 +797,14 @@ export const DEMO_CANDIDATES: Candidate[] = [
     countryId: 'cnt-ae',
     centerId: 'ctr-ae-1',
     batchId: 'bat-4',
-    status: 'REGISTERED',
-    registeredAt: '2026-09-13T11:20:00Z'
+    scheduleId: 'sch-4',
+    reservationId: 'RES-2026-AE-3001',
+    enrollmentStatus: 'NOT_ENROLLED',
+    preloadStatus: 'PRELOADED',
+    photoUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+    status: 'SCHEDULED',
+    registeredAt: '2026-09-13T11:00:00Z',
+    idCardStatus: 'NOT_REQUESTED'
   },
   {
     id: 'can-6',
@@ -907,7 +921,7 @@ export const DEMO_CANDIDATES: Candidate[] = [
     nationalId: '7841988112',
     occupation: 'Pipe Fitting',
     countryId: 'cnt-ae',
-    centerId: 'ctr-ae-2',
+    centerId: 'ctr-ae-1',
     batchId: 'bat-4',
     status: 'SCHEDULED',
     registeredAt: '2026-09-15T11:45:00Z'
@@ -996,7 +1010,7 @@ export const DEMO_CANDIDATES: Candidate[] = [
     nationalId: '7841995112',
     occupation: 'Welding & Fabrication',
     countryId: 'cnt-ae',
-    centerId: 'ctr-ae-2',
+    centerId: 'ctr-ae-1',
     batchId: 'bat-4',
     status: 'SCHEDULED',
     registeredAt: '2026-09-14T14:00:00Z'
@@ -1053,7 +1067,7 @@ export const DEMO_CANDIDATES: Candidate[] = [
     nationalId: '1991443322',
     occupation: 'Marine Mechanics',
     countryId: 'cnt-bd',
-    centerId: 'ctr-bd-2',
+    centerId: 'ctr-bd-1',
     batchId: 'bat-5',
     status: 'REGISTERED',
     registeredAt: '2026-09-16T08:00:00Z'
@@ -1752,10 +1766,41 @@ export const DEMO_COMPLAINTS: Complaint[] = [
     status: 'RESOLVED',
     subject: 'Faulty Digital Multimeter probe during motor wiring test',
     description: 'Lead probe had an intermittent wire disconnect during resistance continuity check. Center support provided replacement meter within 3 minutes.',
-    assignedTo: 'Dr. Khalid Al-Zahrani (Center Admin)',
+    assignedTo: 'usr-3',
+    assignedToName: 'Dr. Khalid Al-Zahrani (Center Admin)',
     createdAt: '2026-09-12T10:15:00Z',
     resolvedAt: '2026-09-12T11:00:00Z',
-    resolutionNotes: 'Replacement equipment verified by Lead Assessor Eng. Yasir. Additional 10 minutes testing time allotted.'
+    resolutionNotes: 'Replacement equipment verified by Lead Assessor Eng. Yasir. Additional 10 minutes testing time allotted.',
+    history: [
+      {
+        id: 'cmph-1',
+        complaintId: 'cmp-1',
+        fromStatus: undefined,
+        toStatus: 'OPEN',
+        changedBy: 'Mohammed Alamgir Hossain (APRO-SA-92812)',
+        changedAt: '2026-09-12T10:15:00Z',
+        comment: 'Grievance ticket logged regarding faulty multimeter probe.'
+      },
+      {
+        id: 'cmph-2',
+        complaintId: 'cmp-1',
+        fromStatus: 'OPEN',
+        toStatus: 'UNDER_REVIEW',
+        changedBy: 'Dr. Khalid Al-Zahrani',
+        changedAt: '2026-09-12T10:25:00Z',
+        assignedTo: 'Dr. Khalid Al-Zahrani',
+        comment: 'Assigned to Center Admin for workshop inspection.'
+      },
+      {
+        id: 'cmph-3',
+        complaintId: 'cmp-1',
+        fromStatus: 'UNDER_REVIEW',
+        toStatus: 'RESOLVED',
+        changedBy: 'Dr. Khalid Al-Zahrani',
+        changedAt: '2026-09-12T11:00:00Z',
+        comment: 'Replacement calibrated meter issued and verified. Additional practical duration granted.'
+      }
+    ]
   },
   {
     id: 'cmp-2',
@@ -1765,11 +1810,33 @@ export const DEMO_COMPLAINTS: Complaint[] = [
     reportedBy: 'Candidate: Bilal Hussain Shah (APRO-SA-92820)',
     category: 'RESULT_DISPUTE',
     priority: 'HIGH',
-    status: 'IN_PROGRESS',
+    status: 'UNDER_REVIEW',
     subject: 'Request for re-evaluation of pipe weld cap reinforcement scoring',
-    description: 'Candidate petitions that undercut score was penalized twice under both root and cover pass rubrics.',
-    assignedTo: 'Tariq Al-Mansoor (Super Admin)',
-    createdAt: '2026-09-14T11:00:00Z'
+    description: 'Candidate petitions that undercut score was penalized twice under both root and cover pass rubrics in Welding & Fabrication.',
+    assignedTo: 'usr-1',
+    assignedToName: 'Tariq Al-Mansoor (Super Admin)',
+    createdAt: '2026-09-14T11:00:00Z',
+    history: [
+      {
+        id: 'cmph-4',
+        complaintId: 'cmp-2',
+        fromStatus: undefined,
+        toStatus: 'OPEN',
+        changedBy: 'Bilal Hussain Shah (APRO-SA-92820)',
+        changedAt: '2026-09-14T11:00:00Z',
+        comment: 'Formal appeal submitted regarding double-penalty on practical rubric.'
+      },
+      {
+        id: 'cmph-5',
+        complaintId: 'cmp-2',
+        fromStatus: 'OPEN',
+        toStatus: 'UNDER_REVIEW',
+        changedBy: 'Tariq Al-Mansoor',
+        changedAt: '2026-09-14T14:30:00Z',
+        assignedTo: 'Tariq Al-Mansoor',
+        comment: 'Escalated to National Assessment Committee for rubric re-calculation.'
+      }
+    ]
   },
   {
     id: 'cmp-3',
@@ -1779,11 +1846,33 @@ export const DEMO_COMPLAINTS: Complaint[] = [
     reportedBy: 'Staff: Fatima Al-Zahra',
     category: 'FACILITY',
     priority: 'LOW',
-    status: 'OPEN',
+    status: 'ACTION_REQUIRED',
     subject: 'Workshop 2 air extraction blower vibration noise',
-    description: 'Ventilation blower fan in electrical lab 2 has mechanical vibration requiring preventative lubrication.',
-    assignedTo: 'Omar Al-Mansouri (Center Admin)',
-    createdAt: '2026-09-15T08:30:00Z'
+    description: 'Ventilation blower fan in electrical lab 2 has mechanical vibration requiring preventative lubrication before next shift.',
+    assignedTo: 'usr-center-ae',
+    assignedToName: 'Omar Al-Mansouri (Center Admin)',
+    createdAt: '2026-09-15T08:30:00Z',
+    history: [
+      {
+        id: 'cmph-6',
+        complaintId: 'cmp-3',
+        fromStatus: undefined,
+        toStatus: 'OPEN',
+        changedBy: 'Fatima Al-Zahra',
+        changedAt: '2026-09-15T08:30:00Z',
+        comment: 'Facility maintenance ticket logged.'
+      },
+      {
+        id: 'cmph-7',
+        complaintId: 'cmp-3',
+        fromStatus: 'OPEN',
+        toStatus: 'ACTION_REQUIRED',
+        changedBy: 'Omar Al-Mansouri',
+        changedAt: '2026-09-15T09:15:00Z',
+        assignedTo: 'Omar Al-Mansouri',
+        comment: 'Physical maintenance inspection required by facility engineering team.'
+      }
+    ]
   },
   {
     id: 'cmp-4',
@@ -1796,10 +1885,64 @@ export const DEMO_COMPLAINTS: Complaint[] = [
     status: 'CLOSED',
     subject: 'Candidate biometric verification system momentary network timeout',
     description: 'Local ISP disruption caused a 4-minute delay in biometric enrollment verification at intake desk.',
-    assignedTo: 'Tanvir Mahmud (Center Admin)',
+    assignedTo: 'usr-center-bd',
+    assignedToName: 'Tanvir Mahmud (Center Admin)',
     createdAt: '2026-09-16T09:00:00Z',
     resolvedAt: '2026-09-16T09:20:00Z',
-    resolutionNotes: 'Switched immediately to backup 5G secondary link. All candidates authenticated without data loss.'
+    resolutionNotes: 'Switched immediately to backup 5G secondary link. All candidates authenticated without data loss.',
+    history: [
+      {
+        id: 'cmph-8',
+        complaintId: 'cmp-4',
+        fromStatus: undefined,
+        toStatus: 'OPEN',
+        changedBy: 'Kamal Hossain',
+        changedAt: '2026-09-16T09:00:00Z',
+        comment: 'Network timeout incident reported.'
+      },
+      {
+        id: 'cmph-9',
+        complaintId: 'cmp-4',
+        fromStatus: 'OPEN',
+        toStatus: 'RESOLVED',
+        changedBy: 'Tanvir Mahmud',
+        changedAt: '2026-09-16T09:15:00Z',
+        comment: 'Backup cellular link engaged successfully.'
+      },
+      {
+        id: 'cmph-10',
+        complaintId: 'cmp-4',
+        fromStatus: 'RESOLVED',
+        toStatus: 'CLOSED',
+        changedBy: 'Tanvir Mahmud',
+        changedAt: '2026-09-16T09:20:00Z',
+        comment: 'Incident settled and closed with zero data discrepancy.'
+      }
+    ]
+  },
+  {
+    id: 'cmp-5',
+    complaintNumber: 'CMP-2026-005',
+    countryId: 'cnt-sa',
+    centerId: 'ctr-sa-1',
+    reportedBy: 'Candidate: Abdul Karim Mansoor (APRO-SA-92813)',
+    category: 'EXAMINATION_CONDUCT',
+    priority: 'MEDIUM',
+    status: 'OPEN',
+    subject: 'Clarification requested on bay safety isolation switch tagging procedure',
+    description: 'Candidate inquires whether bay circuit isolation should have been tagged before or after distribution bar de-energization.',
+    createdAt: '2026-09-18T09:10:00Z',
+    history: [
+      {
+        id: 'cmph-11',
+        complaintId: 'cmp-5',
+        fromStatus: undefined,
+        toStatus: 'OPEN',
+        changedBy: 'Abdul Karim Mansoor',
+        changedAt: '2026-09-18T09:10:00Z',
+        comment: 'Candidate inquiry logged at reception desk.'
+      }
+    ]
   }
 ];
 
@@ -2031,8 +2174,11 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     role: 'SUPER_ADMIN',
     action: 'LOGIN',
     entity: 'AUTH',
-    details: 'Super Admin authenticated from secure workstation.',
-    ipAddress: '192.168.1.10',
+    details: 'Super Admin authenticated from secure headquarters workstation.',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console (Dell Precision 5820)',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise (ISO SECURE)',
     timestamp: '2026-09-17T08:30:00Z',
     status: 'SUCCESS'
   },
@@ -2046,7 +2192,10 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     entity: 'COUNTRY',
     entityId: 'cnt-sa',
     details: 'Created Country Authority for Saudi Arabia (SA).',
-    ipAddress: '192.168.1.10',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise',
     timestamp: '2026-09-15T10:00:00Z',
     status: 'SUCCESS'
   },
@@ -2061,7 +2210,10 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     entity: 'CENTER',
     entityId: 'ctr-sa-1',
     details: 'Registered Riyadh Central Technical Hub with capacity 120.',
-    ipAddress: '192.168.1.10',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise',
     timestamp: '2026-09-15T10:30:00Z',
     status: 'SUCCESS'
   },
@@ -2075,7 +2227,10 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     entity: 'USER',
     entityId: 'usr-2',
     details: 'Created Country Account for Fahad Al-Otaibi (country.sa).',
-    ipAddress: '192.168.1.10',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise',
     timestamp: '2026-09-15T11:00:00Z',
     status: 'SUCCESS'
   },
@@ -2090,7 +2245,10 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     entity: 'USER',
     entityId: 'usr-3',
     details: 'Created Center Admin Dr. Khalid Al-Zahrani for Riyadh Central Hub.',
-    ipAddress: '192.168.1.10',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise',
     timestamp: '2026-09-15T11:30:00Z',
     status: 'SUCCESS'
   },
@@ -2103,7 +2261,10 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     entity: 'PRACTICAL_TASK',
     entityId: 'tsk-1',
     details: 'Configured standardized task TSK-ELE-01 for Electrical Installation.',
-    ipAddress: '192.168.1.10',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise',
     timestamp: '2026-09-16T08:00:00Z',
     status: 'SUCCESS'
   },
@@ -2118,7 +2279,10 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     entity: 'ASSESSOR_LOTTERY',
     entityId: 'lot-1',
     details: 'Executed blind randomized assessor lottery for Schedule SCH-2026-091.',
-    ipAddress: '192.168.1.10',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise',
     timestamp: '2026-09-17T08:00:00Z',
     status: 'SUCCESS'
   },
@@ -2133,8 +2297,65 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     entity: 'RESULT',
     entityId: 'res-4',
     details: 'Corrected evaluation score from 59.0 to 63.0 for candidate APRO-SA-92820. Reason: rubric item 3 double-penalty recalculation.',
-    ipAddress: '192.168.1.10',
+    ipAddress: '10.0.4.12',
+    deviceInfo: 'Primary Oversight Console',
+    browserInfo: 'Enterprise Kiosk Browser v124',
+    osInfo: 'Windows 11 Enterprise',
     timestamp: '2026-09-16T14:15:00Z',
+    status: 'SUCCESS'
+  },
+  {
+    id: 'aud-9',
+    userId: 'usr-4',
+    userName: 'Eng. Yasir Mahmood',
+    role: 'ASSESSOR',
+    countryId: 'cnt-sa',
+    centerId: 'ctr-sa-1',
+    action: 'LOCK',
+    entity: 'EVALUATION_RATING',
+    entityId: 'rat-1',
+    details: 'Submitted and sealed digital evaluation rubric for Tariq Mahmood (APRO-SA-92812). Score: 92.0% (DISTINCTION).',
+    ipAddress: '192.168.1.45',
+    deviceInfo: 'Assessor Mobile Rugged Tablet (Panasonic Toughbook)',
+    browserInfo: 'Secure Assessor Kiosk Agent v4.1',
+    osInfo: 'Android 13 Enterprise Security',
+    timestamp: '2026-09-18T12:45:00Z',
+    status: 'SUCCESS'
+  },
+  {
+    id: 'aud-10',
+    userId: 'usr-3',
+    userName: 'Dr. Khalid Al-Zahrani',
+    role: 'CENTER_ADMIN',
+    countryId: 'cnt-sa',
+    centerId: 'ctr-sa-1',
+    action: 'UPDATE_COMPLAINT',
+    entity: 'COMPLAINT',
+    entityId: 'cmp-1',
+    details: 'Resolved equipment grievance ticket CMP-2026-001. Replacement multimeter issued to candidate.',
+    ipAddress: '192.168.1.10',
+    deviceInfo: 'Center Administrative Workstation',
+    browserInfo: 'Google Chrome v124.0.6',
+    osInfo: 'Windows 11 Pro',
+    timestamp: '2026-09-12T11:00:00Z',
+    status: 'SUCCESS'
+  },
+  {
+    id: 'aud-11',
+    userId: 'usr-6',
+    userName: 'Maryam Al-Shehri',
+    role: 'SUPPORT_STAFF',
+    countryId: 'cnt-sa',
+    centerId: 'ctr-sa-1',
+    action: 'ENROLL_CANDIDATE',
+    entity: 'CANDIDATE',
+    entityId: 'can-1',
+    details: 'Biometric identification verified and intake dossier sealed for Mohammed Alamgir Hossain (APRO-SA-92812).',
+    ipAddress: '192.168.1.22',
+    deviceInfo: 'Biometric Intake Scanner Workstation',
+    browserInfo: 'SecuGen Biometric Portal Kiosk',
+    osInfo: 'Windows 10 Enterprise LTSC',
+    timestamp: '2026-09-17T08:45:00Z',
     status: 'SUCCESS'
   }
 ];
@@ -2381,6 +2602,134 @@ export const DEMO_EVALUATION_SHEETS: EvaluationSheet[] = [
     fileUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop&q=80',
     fileType: 'PDF',
     uploadedAt: '2026-09-18T12:30:00Z'
+  }
+];
+
+export const DEMO_VARIANCE_RECORDS: AssessmentVarianceRecord[] = [
+  {
+    id: 'var-1',
+    candidateId: 'can-6',
+    candidateName: 'Mahfuzur Rahman',
+    aproReference: 'APRO-SA-92816',
+    assessorId: 'usr-4',
+    assessorName: 'Eng. Yasir Mahmood',
+    centerId: 'ctr-sa-1',
+    centerName: 'Riyadh Central Technical Hub',
+    occupation: 'Electrical Installation',
+    taskCode: 'TSK-ELE-001',
+    taskTitle: 'Three-Phase Distribution Board & Circuit Protection Installation',
+    candidateScore: 89,
+    cohortAverage: 83.4,
+    variance: 5.6,
+    riskStatus: 'NORMAL',
+    sectionScores: {
+      'sec-1': { score: 23, maxScore: 25, percentage: 92 },
+      'sec-2': { score: 19, maxScore: 20, percentage: 95 },
+      'sec-3': { score: 9, maxScore: 10, percentage: 90 },
+      'sec-4': { score: 9, maxScore: 10, percentage: 90 },
+      'sec-5': { score: 9, maxScore: 10, percentage: 90 }
+    },
+    evaluatedAt: '2026-09-18T12:45:00Z'
+  },
+  {
+    id: 'var-2',
+    candidateId: 'can-4',
+    candidateName: 'Kamal Pasha Rashed',
+    aproReference: 'APRO-SA-92815',
+    assessorId: 'usr-8',
+    assessorName: 'Ibrahim Al-Mutawa',
+    centerId: 'ctr-sa-2',
+    centerName: 'Jeddah International Testing Facility',
+    occupation: 'Welding & Fabrication',
+    taskCode: 'TSK-WLD-001',
+    taskTitle: 'SMAW 3G Multi-Pass Butt Joint Welding with Visual Inspection',
+    candidateScore: 66,
+    cohortAverage: 84.1,
+    variance: -18.1,
+    riskStatus: 'REVIEW_REQUIRED',
+    sectionScores: {
+      'sec-1': { score: 15, maxScore: 25, percentage: 60 },
+      'sec-2': { score: 14, maxScore: 20, percentage: 70 },
+      'sec-3': { score: 7, maxScore: 10, percentage: 70 },
+      'sec-4': { score: 6, maxScore: 10, percentage: 60 },
+      'sec-5': { score: 7, maxScore: 10, percentage: 70 }
+    },
+    evaluatedAt: '2026-09-17T14:15:00Z'
+  },
+  {
+    id: 'var-3',
+    candidateId: 'can-14',
+    candidateName: 'Farhan Tariq Al-Bishi',
+    aproReference: 'APRO-SA-92819',
+    assessorId: 'usr-4',
+    assessorName: 'Eng. Yasir Mahmood',
+    centerId: 'ctr-sa-1',
+    centerName: 'Riyadh Central Technical Hub',
+    occupation: 'HVAC Maintenance',
+    taskCode: 'TSK-HVC-001',
+    taskTitle: 'Refrigerant Recovery, System Evacuation & Deep Vacuum Holding',
+    candidateScore: 97,
+    cohortAverage: 79.2,
+    variance: 17.8,
+    riskStatus: 'REVIEW_REQUIRED',
+    sectionScores: {
+      'sec-1': { score: 25, maxScore: 25, percentage: 100 },
+      'sec-2': { score: 20, maxScore: 20, percentage: 100 },
+      'sec-3': { score: 10, maxScore: 10, percentage: 100 },
+      'sec-4': { score: 9, maxScore: 10, percentage: 90 },
+      'sec-5': { score: 10, maxScore: 10, percentage: 100 }
+    },
+    evaluatedAt: '2026-09-17T11:20:00Z'
+  },
+  {
+    id: 'var-4',
+    candidateId: 'can-1',
+    candidateName: 'Anowar Hossain',
+    aproReference: 'APRO-SA-92811',
+    assessorId: 'usr-8',
+    assessorName: 'Ibrahim Al-Mutawa',
+    centerId: 'ctr-sa-1',
+    centerName: 'Riyadh Central Technical Hub',
+    occupation: 'Automotive Mechanics',
+    taskCode: 'TSK-AUT-001',
+    taskTitle: 'OBD-II Diagnostic Troubleshooting & Sensor Testing',
+    candidateScore: 82,
+    cohortAverage: 80.5,
+    variance: 1.5,
+    riskStatus: 'NORMAL',
+    sectionScores: {
+      'sec-1': { score: 21, maxScore: 25, percentage: 84 },
+      'sec-2': { score: 16, maxScore: 20, percentage: 80 },
+      'sec-3': { score: 8, maxScore: 10, percentage: 80 },
+      'sec-4': { score: 8, maxScore: 10, percentage: 80 },
+      'sec-5': { score: 8, maxScore: 10, percentage: 80 }
+    },
+    evaluatedAt: '2026-09-16T16:00:00Z'
+  },
+  {
+    id: 'var-5',
+    candidateId: 'can-2',
+    candidateName: 'Md Rafiqul Islam',
+    aproReference: 'APRO-SA-92812',
+    assessorId: 'usr-11',
+    assessorName: 'Tariq Al-Juhani',
+    centerId: 'ctr-sa-3',
+    centerName: 'Dammam Industrial Assessment Complex',
+    occupation: 'Electrical Installation',
+    taskCode: 'TSK-ELE-001',
+    taskTitle: 'Three-Phase Distribution Board & Circuit Protection Installation',
+    candidateScore: 71,
+    cohortAverage: 83.4,
+    variance: -12.4,
+    riskStatus: 'ATTENTION',
+    sectionScores: {
+      'sec-1': { score: 18, maxScore: 25, percentage: 72 },
+      'sec-2': { score: 14, maxScore: 20, percentage: 70 },
+      'sec-3': { score: 7, maxScore: 10, percentage: 70 },
+      'sec-4': { score: 7, maxScore: 10, percentage: 70 },
+      'sec-5': { score: 8, maxScore: 10, percentage: 80 }
+    },
+    evaluatedAt: '2026-09-16T10:45:00Z'
   }
 ];
 

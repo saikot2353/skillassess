@@ -62,7 +62,7 @@ export const AssessorPracticalWorkspace: React.FC<AssessorPracticalWorkspaceProp
   useEffect(() => {
     const allCandidates = storageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
     const myCandidates = allCandidates.filter((c: Candidate) => 
-      c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
+      user?.role === 'SUPER_ADMIN' || c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
     );
     setCandidates(myCandidates);
 

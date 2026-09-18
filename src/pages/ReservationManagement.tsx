@@ -14,6 +14,7 @@ import { Tabs } from '../components/ui/Tabs';
 import { Modal, ModalSectionTitle } from '../components/ui/Modal';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
+import { SerialService } from '../services/serialService';
 import { Reservation, Batch, Candidate } from '../types';
 
 export interface ReservationManagementProps {
@@ -232,7 +233,7 @@ RES-2026-SA-1001,EB0982714,Mohammed Alamgir Hossain,Electrical Installation,CONF
       fullNameEn: r.candidateName,
       fullNameAr: r.candidateName,
       passportNumber: r.passportNumber,
-      aproReference: `APRO-SA-${Math.floor(10000 + Math.random() * 89999)}`,
+      aproReference: SerialService.generateNextApro('SA'),
       nationalId: `199${Math.floor(1000000 + Math.random() * 9000000)}`,
       occupation: r.occupation,
       countryId: 'cnt-sa',
@@ -246,6 +247,7 @@ RES-2026-SA-1001,EB0982714,Mohammed Alamgir Hossain,Electrical Installation,CONF
       evidenceStatus: 'NOT_UPLOADED',
       status: 'REGISTERED',
       registeredAt: nowIso,
+      idCardStatus: 'NOT_REQUESTED',
     }));
 
     const updatedCandidates = [...newCandidates, ...existingCandidates];

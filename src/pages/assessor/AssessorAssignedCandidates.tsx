@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { storageService, STORAGE_KEYS } from '../../services/storageService';
+import { SecurityService } from '../../services/securityService';
 import { Candidate, TaskDifficulty } from '../../types';
 import {
   Users,
@@ -34,9 +35,10 @@ export const AssessorAssignedCandidates: React.FC<AssessorAssignedCandidatesProp
 
   useEffect(() => {
     const allCandidates = storageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
-    const assessorCandidates = allCandidates.filter((c: Candidate) => 
-      c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
-    );
+    const assessorCandidates = allCandidates.filter((c: Candidate) => {
+      const access = SecurityService.canAssessorAccessCandidate(user, c);
+      return access.allowed;
+    });
     setCandidates(assessorCandidates);
   }, [user]);
 

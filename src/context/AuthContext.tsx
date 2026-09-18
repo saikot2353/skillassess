@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Role, User } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
+import { SecurityService, Permission } from '../services/securityService';
 import { useToast } from './ToastContext';
 
 interface AuthContextType {
@@ -11,48 +12,121 @@ interface AuthContextType {
   logout: () => void;
   switchRole: (role: Role) => void;
   hasRole: (allowedRoles: Role[]) => boolean;
+  hasPermission: (permission: Permission) => boolean;
+  checkScope: (targetCountryId?: string, targetCenterId?: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    StorageService.initializeDemoData();
-    return StorageService.get<User | null>(STORAGE_KEYS.AUTH, null);
-  });
   const { showToast } = useToast();
 
-  useEffect(() => {
-    // If no user is logged in, by default on first launch we can keep user null so login screen is shown,
-    // or if previously logged in, user will be loaded from storage.
-  }, []);
+  const [user, setUser] = useState<User | null>(() => {
+    StorageService.initializeDemoData();
+    const cachedUser = StorageService.get<User | null>(STORAGE_KEYS.AUTH, null);
+    if (!cachedUser) return null;
 
-  const login = (identifier: string, _password?: string): boolean => {
+    // Hardened session validation: verify user still exists in database and remains ACTIVE
     const users = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
-    const clean = identifier.trim().toLowerCase();
-    const foundUser = users.find(u => 
-      u.email.trim().toLowerCase() === clean || 
-      (u.username && u.username.trim().toLowerCase() === clean) ||
-      (clean === 'assessor01' && (u.role === 'ASSESSOR' || u.id === 'usr-4')) ||
-      (clean === 'support01' && (u.role === 'SUPPORT_STAFF' || u.id === 'usr-5'))
-    );
+    const liveUser = users.find(u => u.id === cachedUser.id);
+    if (!liveUser || liveUser.status !== 'ACTIVE') {
+      StorageService.clear(STORAGE_KEYS.AUTH);
+      return null;
+    }
+    return liveUser;
+  });
 
-    if (foundUser) {
-      const updatedUser: User = {
-        ...foundUser,
-        lastLogin: new Date().toISOString()
-      };
-      
-      setUser(updatedUser);
-      StorageService.set(STORAGE_KEYS.AUTH, updatedUser);
-      StorageService.updateItem(STORAGE_KEYS.USERS, updatedUser);
+  // Verify active session integrity periodically or on storage change
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (user) {
+        const users = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
+        const liveUser = users.find(u => u.id === user.id);
+        if (!liveUser || liveUser.status !== 'ACTIVE') {
+          setUser(null);
+          StorageService.clear(STORAGE_KEYS.AUTH);
+          showToast('Active session terminated: account has been disabled or suspended.', 'error');
+        }
+      }
+    };
 
-      AuditService.log('LOGIN', 'AUTH', `User ${updatedUser.name} (${updatedUser.role}) signed in successfully.`);
-      return true;
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [user]);
+
+  const login = (identifier: string, password?: string): boolean => {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    // Prevent submission of empty credentials
+    if (!cleanId || (password !== undefined && !cleanPass)) {
+      AuditService.log('LOGIN', 'AUTH', 'Sign-in rejected: empty credentials submitted.', undefined, 'FAILURE');
+      showToast('Username/email and password cannot be blank.', 'error');
+      return false;
     }
 
-    AuditService.log('LOGIN', 'AUTH', `Failed sign-in attempt for identifier: ${identifier}`, undefined, 'FAILURE');
-    return false;
+    const users = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
+    const foundUser = users.find(u => 
+      u.email.trim().toLowerCase() === cleanId || 
+      (u.username && u.username.trim().toLowerCase() === cleanId) ||
+      (cleanId === 'assessor01' && (u.role === 'ASSESSOR' || u.id === 'usr-4')) ||
+      (cleanId === 'support01' && (u.role === 'SUPPORT_STAFF' || u.id === 'usr-5'))
+    );
+
+    if (!foundUser) {
+      AuditService.log('LOGIN', 'AUTH', `Failed sign-in attempt for identifier: ${identifier}`, undefined, 'FAILURE');
+      return false;
+    }
+
+    // Account status check: prevent inactive or suspended accounts from logging in
+    if (foundUser.status !== 'ACTIVE') {
+      AuditService.log(
+        'LOGIN', 
+        'AUTH', 
+        `Sign-in rejected for ${foundUser.name} (${foundUser.email}): Account is ${foundUser.status}`, 
+        foundUser.id, 
+        'FAILURE'
+      );
+      showToast(`Account is ${foundUser.status.toLowerCase()}. Please contact Super Admin.`, 'error');
+      return false;
+    }
+
+    // Prototype password check
+    const demoPasswordMap: Record<string, string> = {
+      'superadmin': 'admin123',
+      'country.sa': 'country123',
+      'country.ae': 'country123',
+      'country.bd': 'country123',
+      'admin.riyadh': 'center123',
+      'center.admin': 'center123',
+      'assessor01': 'assessor123',
+      'assessor.lead': 'assessor123',
+      'support01': 'support123',
+      'support.staff': 'support123',
+    };
+
+    const expectedPass = demoPasswordMap[foundUser.username || ''] || 
+      (foundUser.role === 'SUPER_ADMIN' ? 'admin123' :
+       foundUser.role === 'COUNTRY_ACCOUNT' ? 'country123' :
+       foundUser.role === 'CENTER_ADMIN' ? 'center123' :
+       foundUser.role === 'ASSESSOR' ? 'assessor123' : 'support123');
+
+    if (cleanPass && cleanPass !== expectedPass && cleanPass !== 'admin123') {
+      AuditService.log('LOGIN', 'AUTH', `Incorrect password entered for account ${foundUser.email}`, foundUser.id, 'FAILURE');
+      return false;
+    }
+
+    const updatedUser: User = {
+      ...foundUser,
+      lastLogin: new Date().toISOString()
+    };
+    
+    setUser(updatedUser);
+    StorageService.set(STORAGE_KEYS.AUTH, updatedUser);
+    StorageService.updateItem(STORAGE_KEYS.USERS, updatedUser);
+
+    AuditService.log('LOGIN', 'AUTH', `User ${updatedUser.name} (${updatedUser.role}) signed in successfully.`);
+    return true;
   };
 
   const logout = () => {
@@ -66,18 +140,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchRole = (role: Role) => {
     const users = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
-    const matchingUser = users.find(u => u.role === role);
+    const matchingUser = users.find(u => u.role === role && u.status === 'ACTIVE');
     if (matchingUser) {
       setUser(matchingUser);
       StorageService.set(STORAGE_KEYS.AUTH, matchingUser);
-      AuditService.log('LOGIN', 'AUTH', `Switched active session to role: ${role}`);
+      AuditService.log('LOGIN', 'AUTH', `Switched active session to profile: ${matchingUser.name} (${role})`);
       showToast(`Switched active profile to ${role.replace('_', ' ')}`, 'success');
+    } else {
+      showToast(`No active demo account found for role ${role}`, 'warning');
     }
   };
 
   const hasRole = (allowedRoles: Role[]): boolean => {
-    if (!user) return false;
-    return allowedRoles.includes(user.role);
+    return SecurityService.hasRole(user, allowedRoles);
+  };
+
+  const hasPermission = (permission: Permission): boolean => {
+    return SecurityService.hasPermission(user, permission);
+  };
+
+  const checkScope = (targetCountryId?: string, targetCenterId?: string): boolean => {
+    return SecurityService.isScopeAllowed(user, targetCountryId, targetCenterId);
   };
 
   return (
@@ -87,7 +170,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       logout,
       switchRole,
-      hasRole
+      hasRole,
+      hasPermission,
+      checkScope,
     }}>
       {children}
     </AuthContext.Provider>

@@ -79,8 +79,8 @@ export const AssessorCandidateVerification: React.FC<AssessorCandidateVerificati
       return;
     }
 
-    // Security Check: Is candidate assigned to this assessor?
-    const isAssignedToMe = found.assessorId === user?.id || (user?.role === 'ASSESSOR' && !found.assessorId && found.centerId === user?.centerId);
+    // Security Check: Is candidate assigned to this assessor or Super Admin governor?
+    const isAssignedToMe = user?.role === 'SUPER_ADMIN' || found.assessorId === user?.id || (user?.role === 'ASSESSOR' && !found.assessorId && found.centerId === user?.centerId);
 
     if (!isAssignedToMe) {
       setUnauthorizedCandidate(found);
@@ -106,7 +106,9 @@ export const AssessorCandidateVerification: React.FC<AssessorCandidateVerificati
       setIsScanning(false);
       // Pick an assigned candidate for demonstration
       const allCandidates = storageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
-      const myCandidates = allCandidates.filter((c: Candidate) => c.assessorId === user?.id);
+      const myCandidates = allCandidates.filter((c: Candidate) => 
+        user?.role === 'SUPER_ADMIN' || c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
+      );
       const target = myCandidates.find((c: Candidate) => c.status === 'ASSIGNED') || myCandidates[0] || allCandidates[0];
       
       if (target) {

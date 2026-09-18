@@ -45,13 +45,13 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
     // Load candidates filtered by assessor ID
     const allCandidates = storageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
     const assessorCandidates = allCandidates.filter((c: Candidate) => 
-      c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
+      user?.role === 'SUPER_ADMIN' || c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
     );
     setCandidates(assessorCandidates);
 
     // Load schedules
     const allSchedules = storageService.get<Schedule[]>(STORAGE_KEYS.SCHEDULES, []);
-    const assessorSchedules = allSchedules.filter((s: Schedule) => s.centerId === user?.centerId);
+    const assessorSchedules = allSchedules.filter((s: Schedule) => user?.role === 'SUPER_ADMIN' || s.centerId === user?.centerId);
     setSchedules(assessorSchedules);
 
     // Load tasks

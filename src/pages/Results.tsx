@@ -27,10 +27,17 @@ export interface ResultsProps {
 export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
+  const userCountryId = user?.countryId || 'cnt-sa';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
+  const isAssessor = user?.role === 'ASSESSOR';
+
+  const canOverride = hasPermission('result.override');
+  const canLock = hasPermission('result.lock');
 
   const [results, setResults] = useState<Result[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -59,12 +66,21 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
 
   const loadData = () => {
     const allResults = StorageService.get<Result[]>(STORAGE_KEYS.RESULTS, []);
-    const filtered = isCenterAdmin 
-      ? allResults.filter(r => r.centerId === userCenterId)
-      : allResults;
+    const allCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+    let filtered = allResults;
+
+    if (isAssessor) {
+      filtered = allResults.filter(r => r.assessorId === user?.id || r.assessorName === user?.name);
+    } else if (isCenterAdmin) {
+      filtered = allResults.filter(r => r.centerId === userCenterId);
+    } else if (isCountryAccount) {
+      const countryCenterIds = new Set(allCenters.filter(c => c.countryId === userCountryId).map(c => c.id));
+      filtered = allResults.filter(r => r.countryId === userCountryId || (r.centerId && countryCenterIds.has(r.centerId)));
+    }
+
     setResults(filtered);
     setCountries(StorageService.get<Country[]>(STORAGE_KEYS.COUNTRIES, []));
-    setCenters(StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []));
+    setCenters(allCenters);
     setCandidates(StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []));
   };
 
@@ -82,7 +98,7 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
       const found = allResults.find(r => r.id === idParam);
       if (found) setViewingResult(found);
     }
-  }, [userCenterId, isCenterAdmin]);
+  }, [userCenterId, userCountryId, isCenterAdmin, isCountryAccount, isAssessor]);
 
   // Metrics
   const totalCount = results.length;
@@ -92,6 +108,10 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
   const passRate = totalCount > 0 ? Math.round((passCount / totalCount) * 100) : 0;
 
   const handleOpenCorrection = (res: Result) => {
+    if (!canOverride) {
+      showToast(language === 'ar' ? 'غير مصرح: تعديل النتائج مقصور على مدراء المراكز ومدير النظام' : 'Unauthorized: Result correction is restricted to Center Admins and Super Admins', 'error');
+      return;
+    }
     setCorrectingResult(res);
     setCorrectionForm({
       theoryScore: res.theoryScore || 0,
@@ -104,6 +124,10 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
   const handleSaveCorrection = (e: React.FormEvent) => {
     e.preventDefault();
     if (!correctingResult) return;
+    if (!canOverride) {
+      showToast(language === 'ar' ? 'غير مصرح: تعديل النتائج مقصور على مدراء المراكز ومدير النظام' : 'Unauthorized: Result correction is restricted to Center Admins and Super Admins', 'error');
+      return;
+    }
 
     if (!correctionForm.reason.trim()) {
       setCorrectionError('Supervisory justification / rationale is mandatory for audit compliance.');
@@ -138,6 +162,19 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
     };
 
     StorageService.updateItem(STORAGE_KEYS.RESULTS, updated);
+
+    // Synchronize corrected grade and status to candidate record
+    const allCandidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
+    const candIdx = allCandidates.findIndex(c => c.id === updated.candidateId || c.aproReference === updated.aproReference);
+    if (candIdx >= 0) {
+      allCandidates[candIdx] = {
+        ...allCandidates[candIdx],
+        resultStatus: (newGrade === 'PASS' || newGrade === 'DISTINCTION') ? 'PASS' : 'FAIL',
+        status: 'COMPLETED',
+      };
+      StorageService.set(STORAGE_KEYS.CANDIDATES, allCandidates);
+    }
+
     AuditService.log(
       'CORRECT_RESULT',
       'RESULT',
@@ -153,9 +190,25 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
   };
 
   const handleToggleLock = (res: Result) => {
+    if (!canLock) {
+      showToast(language === 'ar' ? 'غير مصرح: القفل الرقابي صلاحية إدارية فقط' : 'Unauthorized: Regulatory lock toggling is restricted to authorized supervisors', 'error');
+      return;
+    }
     const nextStatus: 'LOCKED' | 'SUBMITTED' = res.status === 'LOCKED' ? 'SUBMITTED' : 'LOCKED';
     const updated: Result = { ...res, status: nextStatus };
     StorageService.updateItem(STORAGE_KEYS.RESULTS, updated);
+
+    // Synchronize lock state to candidate record
+    const allCandidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
+    const candIdx = allCandidates.findIndex(c => c.id === res.candidateId || c.aproReference === res.aproReference);
+    if (candIdx >= 0) {
+      allCandidates[candIdx] = {
+        ...allCandidates[candIdx],
+        resultLocked: nextStatus === 'LOCKED',
+      };
+      StorageService.set(STORAGE_KEYS.CANDIDATES, allCandidates);
+    }
+
     AuditService.log(
       'UPDATE',
       'RESULT',
@@ -343,26 +396,30 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
           >
             <Eye className="w-3.5 h-3.5" />
           </button>
-          <button
-            type="button"
-            onClick={() => handleOpenCorrection(r)}
-            className="p-1.5 rounded text-amber-700 hover:text-amber-900 hover:bg-amber-50 transition-colors"
-            title={language === 'ar' ? 'تعديل رقابي معتمد' : 'Administrative Correction'}
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleToggleLock(r)}
-            className={`p-1.5 rounded transition-colors ${
-              r.status === 'LOCKED' 
-                ? 'text-[#C9A24D] hover:bg-[#FBF6E8]' 
-                : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
-            }`}
-            title={r.status === 'LOCKED' ? (language === 'ar' ? 'فك القفل' : 'Unlock Record') : (language === 'ar' ? 'قفل رقابي' : 'Enforce Lock')}
-          >
-            {r.status === 'LOCKED' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-          </button>
+          {canOverride && (
+            <button
+              type="button"
+              onClick={() => handleOpenCorrection(r)}
+              className="p-1.5 rounded text-amber-700 hover:text-amber-900 hover:bg-amber-50 transition-colors"
+              title={language === 'ar' ? 'تعديل رقابي معتمد' : 'Administrative Correction'}
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {canLock && (
+            <button
+              type="button"
+              onClick={() => handleToggleLock(r)}
+              className={`p-1.5 rounded transition-colors ${
+                r.status === 'LOCKED' 
+                  ? 'text-[#C9A24D] hover:bg-[#FBF6E8]' 
+                  : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
+              }`}
+              title={r.status === 'LOCKED' ? (language === 'ar' ? 'فك القفل' : 'Unlock Record') : (language === 'ar' ? 'قفل رقابي' : 'Enforce Lock')}
+            >
+              {r.status === 'LOCKED' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => handlePrintCertificate(r)}
@@ -447,23 +504,25 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
           <Filter className="w-4 h-4 text-stone-400" />
-          {!isCenterAdmin && (
+          {!isCenterAdmin && !isAssessor && (
             <>
-              <select
-                value={countryFilter}
-                onChange={e => {
-                  setCountryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="text-xs bg-white border border-[#E8D9D2] rounded-lg py-1.5 px-2.5 focus:outline-none focus:border-[#7A2E3A] text-[#3F3030]"
-              >
-                <option value="ALL">{t.common.all} {t.countriesModule.title}</option>
-                {countries.map(cnt => (
-                  <option key={cnt.id} value={cnt.id}>
-                    {cnt.flagEmoji} {language === 'ar' ? cnt.nameAr : cnt.nameEn}
-                  </option>
-                ))}
-              </select>
+              {!isCountryAccount && (
+                <select
+                  value={countryFilter}
+                  onChange={e => {
+                    setCountryFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-xs bg-white border border-[#E8D9D2] rounded-lg py-1.5 px-2.5 focus:outline-none focus:border-[#7A2E3A] text-[#3F3030]"
+                >
+                  <option value="ALL">{t.common.all} {t.countriesModule.title}</option>
+                  {countries.map(cnt => (
+                    <option key={cnt.id} value={cnt.id}>
+                      {cnt.flagEmoji} {language === 'ar' ? cnt.nameAr : cnt.nameEn}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               <select
                 value={centerFilter}
@@ -474,11 +533,13 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
                 className="text-xs bg-white border border-[#E8D9D2] rounded-lg py-1.5 px-2.5 focus:outline-none focus:border-[#7A2E3A] text-[#3F3030]"
               >
                 <option value="ALL">{t.common.all} {t.centersModule.title}</option>
-                {centers.map(ctr => (
-                  <option key={ctr.id} value={ctr.id}>
-                    {ctr.code} - {language === 'ar' ? ctr.nameAr : ctr.nameEn}
-                  </option>
-                ))}
+                {centers
+                  .filter(ctr => !isCountryAccount || ctr.countryId === userCountryId)
+                  .map(ctr => (
+                    <option key={ctr.id} value={ctr.id}>
+                      {ctr.code} - {language === 'ar' ? ctr.nameAr : ctr.nameEn}
+                    </option>
+                  ))}
               </select>
             </>
           )}

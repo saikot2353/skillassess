@@ -38,6 +38,7 @@ export class SearchService {
         c.fullNameAr.toLowerCase().includes(q) ||
         c.passportNumber.toLowerCase().includes(q) ||
         c.aproReference.toLowerCase().includes(q) ||
+        (c.idCardNumber && c.idCardNumber.toLowerCase().includes(q)) ||
         c.occupation.toLowerCase().includes(q)
       ) {
         const link = isAssessor
@@ -48,8 +49,8 @@ export class SearchService {
           id: c.id,
           type: 'candidate',
           title: `${c.fullNameEn} (${c.passportNumber})`,
-          subtitle: `${c.occupation} • Ref: ${c.aproReference}`,
-          badge: c.status,
+          subtitle: `${c.occupation} • Ref: ${c.aproReference}${c.idCardNumber ? ` • ID: ${c.idCardNumber}` : ''}`,
+          badge: c.idCardStatus ? `IDC: ${c.idCardStatus}` : c.status,
           link,
         });
       }

@@ -26,7 +26,8 @@ import { ReportsPage } from './pages/Reports';
 import { IDCardManagementPage } from './pages/IDCardManagement';
 import { ConfigurationPage } from './pages/Configuration';
 import { ComplaintsPage } from './pages/Complaints';
-import { GenericModulePlaceholder } from './pages/GenericModulePlaceholder';
+import { UserProfilePage } from './pages/UserProfilePage';
+import { SystemNotificationsPage } from './pages/SystemNotificationsPage';
 
 // Phase 03 Center Admin Pages
 import { ReservationManagementPage } from './pages/ReservationManagement';
@@ -199,6 +200,7 @@ const RouterContent: React.FC = () => {
         );
 
       case '/audit':
+      case '/admin/audit':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN']} onNavigate={navigate}>
             <AuditLogsPage />
@@ -210,6 +212,8 @@ const RouterContent: React.FC = () => {
 
       case '/config':
       case '/configuration':
+      case '/admin/configuration':
+      case '/super-admin/configuration':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onNavigate={navigate}>
             <ConfigurationPage onNavigate={navigate} />
@@ -245,8 +249,16 @@ const RouterContent: React.FC = () => {
         );
 
       case '/monitoring':
+      case '/super-admin/monitoring':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN']} onNavigate={navigate}>
+            <MonitoringPage onNavigate={navigate} />
+          </ProtectedRoute>
+        );
+
+      case '/global/governance':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onNavigate={navigate}>
             <MonitoringPage onNavigate={navigate} />
           </ProtectedRoute>
         );
@@ -260,6 +272,7 @@ const RouterContent: React.FC = () => {
         );
 
       case '/complaints':
+      case '/admin/complaints':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN']} onNavigate={navigate}>
             <ComplaintsPage onNavigate={navigate} />
@@ -359,55 +372,11 @@ const RouterContent: React.FC = () => {
         );
 
       case '/notifications':
-        if (user?.role === 'SUPPORT_STAFF') {
-          return (
-            <ProtectedRoute allowedRoles={['SUPPORT_STAFF', 'CENTER_ADMIN', 'SUPER_ADMIN']} onNavigate={navigate}>
-              <SupportStaffNotifications onNavigate={navigate} />
-            </ProtectedRoute>
-          );
-        }
-        if (user?.role === 'ASSESSOR') {
-          return (
-            <ProtectedRoute allowedRoles={['ASSESSOR', 'SUPER_ADMIN']} onNavigate={navigate}>
-              <AssessorNotifications onNavigate={navigate} />
-            </ProtectedRoute>
-          );
-        }
-        return (
-          <GenericModulePlaceholder
-            title="System Notifications"
-            moduleKey="notifications"
-            description="Center activity alerts, biometric anomalies, and system operational messages"
-            phase="Phase 06 Notification Module"
-            onNavigate={navigate}
-          />
-        );
+        return <SystemNotificationsPage onNavigate={navigate} />;
 
       case '/support/profile':
       case '/profile':
-        if (user?.role === 'ASSESSOR') {
-          return (
-            <ProtectedRoute allowedRoles={['ASSESSOR', 'SUPER_ADMIN']} onNavigate={navigate}>
-              <AssessorProfile />
-            </ProtectedRoute>
-          );
-        }
-        if (user?.role === 'SUPPORT_STAFF') {
-          return (
-            <ProtectedRoute allowedRoles={['SUPPORT_STAFF', 'SUPER_ADMIN']} onNavigate={navigate}>
-              <SupportStaffProfile />
-            </ProtectedRoute>
-          );
-        }
-        return (
-          <GenericModulePlaceholder
-            title="User Profile & Security"
-            moduleKey="profile"
-            description="Personal credentials, contact details, and multi-factor authentication preferences"
-            phase="Phase 01 Shell Settings"
-            onNavigate={navigate}
-          />
-        );
+        return <UserProfilePage onNavigate={navigate} />;
 
       default:
         return <Dashboard onNavigate={navigate} />;

@@ -37,12 +37,12 @@ export const AssessorTodayAssessments: React.FC<AssessorTodayAssessmentsProps> =
   useEffect(() => {
     const allCandidates = storageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
     const assessorCandidates = allCandidates.filter((c: Candidate) => 
-      c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
+      user?.role === 'SUPER_ADMIN' || c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
     );
     setCandidates(assessorCandidates);
 
     const allSchedules = storageService.get<Schedule[]>(STORAGE_KEYS.SCHEDULES, []);
-    setSchedules(allSchedules.filter((s: Schedule) => s.centerId === user?.centerId));
+    setSchedules(allSchedules.filter((s: Schedule) => user?.role === 'SUPER_ADMIN' || s.centerId === user?.centerId));
   }, [user]);
 
   const occupations = Array.from(new Set(candidates.map((c: Candidate) => c.occupation).filter(Boolean)));

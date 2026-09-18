@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardCheck, Search, Eye } from 'lucide-react';
+import { ClipboardCheck, Search, Eye, Shield } from 'lucide-react';
 import { Assessment, Candidate } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,6 +9,7 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { Modal, ModalSectionTitle } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/ui/Pagination';
+import { AssessmentTraceabilityModal } from '../components/AssessmentTraceabilityModal';
 
 export const AssessmentsPage: React.FC = () => {
   const { t } = useLanguage();
@@ -18,6 +19,7 @@ export const AssessmentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
+  const [traceabilityAssessmentId, setTraceabilityAssessmentId] = useState<string | null>(null);
   const pageSize = 5;
 
   useEffect(() => {
@@ -81,14 +83,26 @@ export const AssessmentsPage: React.FC = () => {
       className: 'text-end',
       headerClassName: 'text-end',
       render: a => (
-        <button
-          type="button"
-          onClick={() => setSelectedAssessment(a)}
-          className="p-1.5 rounded text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors inline-flex items-center gap-1 text-xs"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          <span>{t.common.view}</span>
-        </button>
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSelectedAssessment(a)}
+            className="p-1.5 rounded text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors inline-flex items-center gap-1 text-xs"
+            title="View Details"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>{t.common.view}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTraceabilityAssessmentId(a.id)}
+            className="p-1.5 rounded text-[#7A2E3A] hover:bg-[#F8ECEE] transition-colors inline-flex items-center gap-1 text-xs font-semibold"
+            title="ISO 17024 Traceability Trail"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Traceability</span>
+          </button>
+        </div>
       ),
     },
   ];
@@ -146,9 +160,22 @@ export const AssessmentsPage: React.FC = () => {
           icon={<ClipboardCheck className="w-6 h-6" />}
           infoNotice="Evaluation scores are cryptographically stamped and cannot be modified once certified."
           footer={
-            <Button variant="secondary" size="md" onClick={() => setSelectedAssessment(null)}>
-              {t.common.close}
-            </Button>
+            <div className="flex items-center justify-between w-full">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setTraceabilityAssessmentId(selectedAssessment.id);
+                  setSelectedAssessment(null);
+                }}
+                leftIcon={<Shield className="w-3.5 h-3.5 text-[#7A2E3A]" />}
+              >
+                ISO 17024 Traceability
+              </Button>
+              <Button variant="secondary" size="md" onClick={() => setSelectedAssessment(null)}>
+                {t.common.close}
+              </Button>
+            </div>
           }
         >
           <div className="space-y-5 text-xs">
@@ -189,6 +216,15 @@ export const AssessmentsPage: React.FC = () => {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Assessment Traceability Dossier Modal */}
+      {traceabilityAssessmentId && (
+        <AssessmentTraceabilityModal
+          isOpen={!!traceabilityAssessmentId}
+          onClose={() => setTraceabilityAssessmentId(null)}
+          assessmentId={traceabilityAssessmentId}
+        />
       )}
     </div>
   );
