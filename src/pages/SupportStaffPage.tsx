@@ -15,7 +15,7 @@ import { Select } from '../components/ui/Select';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
-import { User } from '../types';
+import { User, Center } from '../types';
 
 export interface SupportStaffPageProps {
   onNavigate?: (path: string) => void;
@@ -34,7 +34,16 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  const userCenterId = user?.centerId || 'ctr-sa-1';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
+  const canSwitchCenter = isSuperAdmin || isCountryAccount;
+
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [selectedCenterId, setSelectedCenterId] = useState<string>(
+    user?.centerId || 'ALL'
+  );
+
+  const userCenterId = user?.centerId || (selectedCenterId !== 'ALL' ? selectedCenterId : 'ctr-sa-1');
 
   const [staffList, setStaffList] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,6 +59,7 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
     username: '',
     assignedFunction: SUPPORT_FUNCTIONS[0],
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+    centerId: user?.centerId || 'ctr-sa-1',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -58,13 +68,27 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
 
   const loadData = () => {
     const allUsers = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
-    const centerStaff = allUsers.filter(u => u.role === 'SUPPORT_STAFF' && u.centerId === userCenterId);
+    const allCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+    setCenters(allCenters);
+
+    const effectiveCenter = user?.centerId || selectedCenterId;
+
+    const centerStaff = allUsers.filter(u => {
+      if (u.role !== 'SUPPORT_STAFF') return false;
+      if (effectiveCenter === 'ALL') {
+        if (isCountryAccount && user?.countryId) {
+          return u.countryId === user.countryId;
+        }
+        return true;
+      }
+      return u.centerId === effectiveCenter;
+    });
     setStaffList(centerStaff);
   };
 
   useEffect(() => {
     loadData();
-  }, [userCenterId]);
+  }, [selectedCenterId, user?.centerId]);
 
   const handleOpenAdd = () => {
     const autoUsername = `staff.${Math.floor(100 + Math.random() * 900)}`;
@@ -75,6 +99,7 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
       username: autoUsername,
       assignedFunction: SUPPORT_FUNCTIONS[0],
       status: 'ACTIVE',
+      centerId: userCenterId,
     });
     setFormErrors({});
     setIsAddOpen(true);
@@ -284,7 +309,25 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
             />
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+            {canSwitchCenter && (
+              <select
+                value={selectedCenterId}
+                onChange={(e) => setSelectedCenterId(e.target.value)}
+                className="px-3 py-2 text-xs font-medium bg-[#FFFCF8] border border-[#D5D0C7] rounded-lg text-[#2C2623] focus:outline-none focus:border-[#7A2E3A]"
+              >
+                <option value="ALL">All Centers ({centers.length})</option>
+                {centers
+                  .filter(c => !isCountryAccount || !user?.countryId || c.countryId === user.countryId)
+                  .map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.countryId === 'cnt-bd' ? '🇧🇩 ' : c.countryId === 'cnt-sa' ? '🇸🇦 ' : '🇦🇪 '}
+                      {c.nameEn} ({c.code})
+                    </option>
+                  ))}
+              </select>
+            )}
+
             <select
               value={functionFilter}
               onChange={(e) => setFunctionFilter(e.target.value)}
@@ -314,6 +357,7 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
             <thead>
               <tr className="bg-[#FAF8F5] border-b border-[#E8E4DC] text-[#7C756D] text-xs font-medium uppercase">
                 <th className="py-3.5 px-4">{language === 'ar' ? 'الموظف' : 'Staff Member'}</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'المركز' : 'Center'}</th>
                 <th className="py-3.5 px-4">{language === 'ar' ? 'الوظيفة الموكلة' : 'Assigned Function'}</th>
                 <th className="py-3.5 px-4">{language === 'ar' ? 'بيانات الاتصال' : 'Contact'}</th>
                 <th className="py-3.5 px-4">{language === 'ar' ? 'تاريخ التسجيل' : 'Registered'}</th>
@@ -324,10 +368,10 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
             <tbody className="divide-y divide-[#E8E4DC]">
               {filteredStaff.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#7C756D]">
+                  <td colSpan={7} className="py-12 text-center text-[#7C756D]">
                     <Users className="w-10 h-10 mx-auto text-[#D5D0C7] mb-2" />
                     <p className="font-medium">
-                      {language === 'ar' ? 'لم يتم العثور على موظفي دعم مطابقين' : 'No support staff found'}
+                      {language === 'ar' ? 'لم يتم العثور على موظفي دعم مطابقين' : 'No support staff found for this center'}
                     </p>
                     <p className="text-xs mt-1">
                       {language === 'ar' ? 'يمكنك إضافة موظف جديد أو تعديل معايير البحث' : 'Try adjusting your search criteria or register a new staff member'}
@@ -335,7 +379,9 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
                   </td>
                 </tr>
               ) : (
-                filteredStaff.map((staff) => (
+                filteredStaff.map((staff) => {
+                  const ctr = centers.find(c => c.id === staff.centerId);
+                  return (
                   <tr key={staff.id} className="hover:bg-[#FAF8F5]/60 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -351,6 +397,10 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      <div className="font-medium text-[#2C2623]">{ctr ? ctr.nameEn : (staff.centerId || '—')}</div>
+                      {ctr && <div className="text-[10px] font-mono text-[#7C756D]">{ctr.code}</div>}
                     </td>
                     <td className="py-3 px-4">
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#FAF8F5] text-[#2C2623] border border-[#E8E4DC]">
@@ -403,7 +453,8 @@ export const SupportStaffPage: React.FC<SupportStaffPageProps> = ({ onNavigate }
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

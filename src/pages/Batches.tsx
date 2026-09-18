@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Layers, Calendar, Trash2, Search, Save, Eye, CheckCircle2 } from 'lucide-react';
+import { Plus, Layers, Calendar, Trash2, Search, Save, Eye, CheckCircle2, FileSpreadsheet, Clock } from 'lucide-react';
 import { Batch, Center, Candidate } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
@@ -16,7 +16,7 @@ import { Select } from '../components/ui/Select';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Pagination } from '../components/ui/Pagination';
 
-export const BatchesPage: React.FC = () => {
+export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -40,9 +40,8 @@ export const BatchesPage: React.FC = () => {
     batchNumber: `BATCH-2026-0${Math.floor(10 + Math.random() * 90)}`,
     centerId: '',
     occupation: 'Electrical Installation',
-    candidateCount: 25,
-    startDate: '2026-09-20',
-    endDate: '2026-09-30',
+    startDate: new Date().toISOString().split('T')[0],
+    startTime: '10:30 AM',
     status: 'ACTIVE' as any,
   });
 
@@ -61,13 +60,13 @@ export const BatchesPage: React.FC = () => {
   }, [userCenterId, isCenterScoped]);
 
   const handleOpenAdd = () => {
+    const today = new Date().toISOString().split('T')[0];
     setFormData({
       batchNumber: `BATCH-2026-0${Math.floor(10 + Math.random() * 90)}`,
       centerId: isCenterAdmin ? userCenterId : (centers[0]?.id || ''),
       occupation: 'Electrical Installation',
-      candidateCount: 25,
-      startDate: '2026-09-20',
-      endDate: '2026-09-30',
+      startDate: today,
+      startTime: '10:30 AM',
       status: 'ACTIVE',
     });
     setIsAddOpen(true);
@@ -75,19 +74,24 @@ export const BatchesPage: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    const newBatchId = `bat-${Date.now()}`;
+    const combinedDateTime = `${formData.startDate} ${formData.startTime}`.trim();
     const newBatch: Batch = {
-      id: `bat-${Date.now()}`,
+      id: newBatchId,
       batchNumber: formData.batchNumber.trim(),
       centerId: isCenterAdmin ? userCenterId : formData.centerId,
       occupation: formData.occupation,
-      candidateCount: Number(formData.candidateCount) || 20,
+      candidateCount: 0, // Automatically derived from enrolled candidates
       startDate: formData.startDate,
-      endDate: formData.endDate,
+      startTime: formData.startTime,
+      startDateTime: combinedDateTime,
+      assessmentDate: formData.startDate,
+      assessmentTime: formData.startTime,
       status: formData.status,
     };
 
     StorageService.updateItem(STORAGE_KEYS.BATCHES, newBatch);
-    AuditService.log('CREATE_BATCH', 'BATCH', `Created batch ${newBatch.batchNumber} (${newBatch.occupation})`, newBatch.id);
+    AuditService.log('CREATE_BATCH', 'BATCH', `Created batch ${newBatch.batchNumber} (${newBatch.occupation}) scheduled for ${combinedDateTime}`, newBatch.id);
     showToast(t.toasts.createdSuccess, 'success');
     setIsAddOpen(false);
     loadData();
@@ -128,18 +132,23 @@ export const BatchesPage: React.FC = () => {
     {
       key: 'candidates',
       header: language === 'ar' ? 'عدد المرشحين' : 'Candidate Count',
-      render: b => (
-        <span className="text-xs font-semibold text-[#2C2623]">
-          {b.candidateCount} {language === 'ar' ? 'مرشح' : 'candidates'}
-        </span>
-      ),
+      render: b => {
+        const count = candidates.filter(c => c.batchId === b.id).length;
+        return (
+          <span className="text-xs font-semibold text-[#2C2623]">
+            {count} {language === 'ar' ? 'مرشح' : 'candidates'}
+          </span>
+        );
+      },
     },
     {
       key: 'duration',
-      header: language === 'ar' ? 'الفترة' : 'Window Dates',
+      header: language === 'ar' ? 'تاريخ ووقت البدء' : 'Start Date & Time',
       render: b => (
-        <span className="text-xs text-[#7C756D] font-mono">
-          {b.startDate} → {b.endDate}
+        <span className="text-xs text-[#7C756D] font-mono flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-[#7A2E3A]" />
+          <span>{b.startDate}</span>
+          {b.startTime && <span className="font-semibold text-[#2C2623]">• {b.startTime}</span>}
         </span>
       ),
     },
@@ -154,7 +163,16 @@ export const BatchesPage: React.FC = () => {
       className: 'text-end',
       headerClassName: 'text-end',
       render: b => (
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate(`/reservations?tab=import&batchId=${b.id}`)}
+            className="p-1.5 px-2 rounded text-xs font-medium text-[#7A2E3A] hover:bg-[#F8ECEE] border border-[#E8D9D2] transition-colors inline-flex items-center gap-1"
+            title={language === 'ar' ? 'استيراد الحجوزات للدفعة' : 'Import Reservations'}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-[#7A2E3A]" />
+            <span className="hidden sm:inline">{language === 'ar' ? 'استيراد' : 'Import'}</span>
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -283,8 +301,8 @@ export const BatchesPage: React.FC = () => {
             )}
           </div>
 
-          <ModalSectionTitle title={language === 'ar' ? 'المهنة وسعة الدفعة' : 'Occupation & Capacity'} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ModalSectionTitle title={language === 'ar' ? 'المهنة التخصصية' : 'Occupation Specialization'} />
+          <div>
             <Select
               label={language === 'ar' ? 'المهنة' : 'Occupation'}
               value={formData.occupation}
@@ -294,30 +312,51 @@ export const BatchesPage: React.FC = () => {
                 { value: 'HVAC Maintenance', label: 'HVAC Maintenance' },
                 { value: 'Welding & Fabrication', label: 'Welding & Fabrication' },
                 { value: 'BMS Automation', label: 'BMS Automation' },
+                { value: 'Warehouse Worker', label: 'Warehouse Worker' },
+                { value: 'Plumbing & Sanitary Works', label: 'Plumbing & Sanitary Works' },
               ]}
-            />
-            <Input
-              label={language === 'ar' ? 'عدد المرشحين' : 'Candidate Count'}
-              type="number"
-              value={formData.candidateCount}
-              onChange={e => setFormData({ ...formData, candidateCount: Number(e.target.value) })}
             />
           </div>
 
-          <ModalSectionTitle title={language === 'ar' ? 'الجدول الزمني للدفعة' : 'Cohort Timeline'} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label={language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
-              type="date"
-              value={formData.startDate}
-              onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-            />
-            <Input
-              label={language === 'ar' ? 'تاريخ الانتهاء' : 'End Date'}
-              type="date"
-              value={formData.endDate}
-              onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-            />
+          <ModalSectionTitle title={language === 'ar' ? 'موعد انطلاق الدفعة' : 'Batch Assessment Schedule'} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+            <div>
+              <Input
+                label={language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
+                type="date"
+                required
+                value={formData.startDate}
+                onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#2C2623] mb-1 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-[#7A2E3A]" />
+                <span>{language === 'ar' ? 'الوقت' : 'Time'}</span>
+                <span className="text-[10px] text-[#7C756D] font-normal">(HH:MM AM/PM)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  required
+                  placeholder="10:30 AM"
+                  value={formData.startTime}
+                  onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                  className="w-full px-3 py-2 text-sm bg-white border border-[#D5D0C7] rounded-lg focus:outline-none focus:border-[#7A2E3A] font-mono"
+                />
+                <select
+                  value={formData.startTime.toUpperCase().includes('PM') ? 'PM' : 'AM'}
+                  onChange={e => {
+                    const cleanTime = formData.startTime.replace(/\s*(AM|PM)/gi, '').trim() || '10:30';
+                    setFormData({ ...formData, startTime: `${cleanTime} ${e.target.value}` });
+                  }}
+                  className="px-2.5 py-2 text-sm bg-[#FAF8F5] border border-[#D5D0C7] rounded-lg text-[#2C2623] font-semibold cursor-pointer"
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
           </div>
         </form>
       </Modal>
@@ -370,11 +409,11 @@ export const BatchesPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="p-3 bg-[#FFFCF8] rounded-lg border border-[#E8E4DC]">
                       <div className="text-[#7C756D] font-medium mb-1">{language === 'ar' ? 'المرشحون بالدفعة' : 'Registered Cohort'}</div>
-                      <div className="font-semibold text-[#2C2623]">{batchCandidates.length} / {viewingBatch.candidateCount}</div>
+                      <div className="font-semibold text-[#2C2623]">{batchCandidates.length} {language === 'ar' ? 'مرشح' : 'candidates'}</div>
                     </div>
                     <div className="p-3 bg-[#FFFCF8] rounded-lg border border-[#E8E4DC]">
-                      <div className="text-[#7C756D] font-medium mb-1">{language === 'ar' ? 'الفترة الزمنية' : 'Testing Window'}</div>
-                      <div className="font-semibold text-[#2C2623] font-mono">{viewingBatch.startDate} → {viewingBatch.endDate}</div>
+                      <div className="text-[#7C756D] font-medium mb-1">{language === 'ar' ? 'موعد البدء' : 'Start Schedule'}</div>
+                      <div className="font-semibold text-[#2C2623] font-mono">{viewingBatch.startDate} {viewingBatch.startTime ? `• ${viewingBatch.startTime}` : ''}</div>
                     </div>
                   </div>
 

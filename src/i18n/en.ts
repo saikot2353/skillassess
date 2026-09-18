@@ -68,6 +68,7 @@ export const en = {
     reservationImport: 'Reservation Import',
     preloadedCandidates: 'Preloaded Candidates',
     candidateList: 'Candidate List',
+    candidateExitList: 'Candidate Exit List',
     candidateDetails: 'Candidate Details',
     enrollment: 'Enrollment',
     photos: 'Photos',

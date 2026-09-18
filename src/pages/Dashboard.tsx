@@ -4,7 +4,7 @@ import {
   ArrowUpRight, Clock, ShieldCheck, Activity, UserCheck, 
   Layers, CheckCircle2, AlertCircle, Eye,
   Plus, CheckSquare, RefreshCw, MapPin, Lock, FileText,
-  CreditCard, Camera, Search, Bell, UserCircle, Shield, AlertTriangle
+  CreditCard, Camera, Search, Bell, UserCircle, Shield, AlertTriangle, LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -1199,6 +1199,20 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
             <div>
               <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'قائمة المرشحين' : 'Candidate Registry'}</div>
               <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التحقق ومطابقة الهوية' : 'Verify identity & APRO'}</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('/candidate-exit-list')}
+            className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+          >
+            <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
+              <LogOut className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'قائمة خروج المرشحين' : 'Candidate Exit List'}</div>
+              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التحقق وتأكيد المغادرة' : 'Verify & confirm exit'}</div>
             </div>
           </button>
 

@@ -118,6 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'schedules', path: '/schedules', labelKey: 'schedules' },
         { id: 'batches', path: '/batches', labelKey: 'batches' },
         { id: 'candidates', path: '/candidates', labelKey: 'candidates' },
+        { id: 'candidates-exit', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
         { id: 'assessments-list', path: '/assessments', labelKey: 'assessments' },
         { id: 'results', path: '/results', labelKey: 'results' },
       ],
@@ -243,6 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: UserCheck,
       subItems: [
         { id: 'can-list', path: '/candidates', labelKey: 'candidateList' },
+        { id: 'can-exit-list', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
         { id: 'can-enroll', path: '/enrollment', labelKey: 'enrollment' },
         { id: 'can-photos', path: '/candidate-photos', labelKey: 'photos' },
       ],
@@ -371,6 +373,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: UserCheck,
       subItems: [
         { id: 'can-list', path: '/candidates', labelKey: 'candidateList' },
+        { id: 'can-exit-list', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
         { id: 'can-photos', path: '/candidate-photos', labelKey: 'photos' },
       ],
     },

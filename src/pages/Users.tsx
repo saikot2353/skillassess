@@ -72,7 +72,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     const loadedCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
 
     const filteredUsers = isCenterAdmin 
-      ? loadedUsers.filter(u => (u.role === 'ASSESSOR' || u.role === 'SUPPORT_STAFF') && u.centerId === userCenterId)
+      ? loadedUsers.filter(u => u.id === currentUser?.id || ((u.role === 'ASSESSOR' || u.role === 'SUPPORT_STAFF') && u.centerId === userCenterId))
       : loadedUsers;
 
     setUsers(filteredUsers);
@@ -324,6 +324,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     const matchesSearch =
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (u.phone && u.phone.includes(searchTerm));
 
     const matchesRole = activeRoleTab === 'ALL' || u.role === activeRoleTab;

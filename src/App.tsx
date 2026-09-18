@@ -126,7 +126,15 @@ const RouterContent: React.FC = () => {
       case '/support/candidates':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
-            <CandidatesPage onNavigate={navigate} />
+            <CandidatesPage onNavigate={navigate} mode="entry" />
+          </ProtectedRoute>
+        );
+
+      case '/candidate-exit-list':
+      case '/support/candidate-exit-list':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+            <CandidatesPage onNavigate={navigate} mode="exit" />
           </ProtectedRoute>
         );
 
@@ -188,7 +196,7 @@ const RouterContent: React.FC = () => {
       case '/support/batches':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
-            <BatchesPage />
+            <BatchesPage onNavigate={navigate} />
           </ProtectedRoute>
         );
 

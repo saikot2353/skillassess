@@ -22,6 +22,8 @@ export const STORAGE_KEYS = {
   PRACTICAL_TASKS: 'skillassess360_tasks',
   WORKSHEETS: 'skillassess360_worksheets',
   TASK_ALLOCATIONS: 'skillassess360_task_allocations',
+  PASSPORT_VERIFICATIONS: 'skillassess360_passport_verifications',
+  CANDIDATE_EXITS: 'skillassess360_candidate_exits',
   ASSESSOR_LOTTERY: 'skillassess360_assessor_lottery',
   TASK_LOTTERY: 'skillassess360_task_lottery',
   RESULTS: 'skillassess360_results',
@@ -114,66 +116,70 @@ export class StorageService {
   }
 
   /**
-   * Initialize demo data without overwriting existing user data
+   * Helper to ensure all predefined demo items exist in storage without wiping custom user records
+   */
+  private static ensurePredefinedItems<T extends { id: string; email?: string }>(
+    key: string,
+    demoItems: T[],
+    checkEmail = false
+  ): void {
+    if (!this.hasKey(key)) {
+      this.set(key, demoItems);
+      return;
+    }
+    const current = this.get<T[]>(key, []);
+    if (!Array.isArray(current) || current.length === 0) {
+      this.set(key, demoItems);
+      return;
+    }
+    const currentIds = new Set(current.map(i => i.id));
+    const currentEmails = checkEmail
+      ? new Set(current.filter(i => i.email).map(i => i.email!.trim().toLowerCase()))
+      : null;
+
+    let hasChange = false;
+    const merged = [...current];
+
+    for (const item of demoItems) {
+      const idExists = currentIds.has(item.id);
+      const emailExists = checkEmail && item.email && currentEmails?.has(item.email.trim().toLowerCase());
+      if (!idExists && !emailExists) {
+        merged.push(item);
+        currentIds.add(item.id);
+        if (checkEmail && item.email) currentEmails?.add(item.email.trim().toLowerCase());
+        hasChange = true;
+      }
+    }
+
+    if (hasChange) {
+      this.set(key, merged);
+    }
+  }
+
+  /**
+   * Initialize demo data, ensuring missing demo items are merged into existing storage
    */
   static initializeDemoData(): void {
-    if (!this.hasKey(STORAGE_KEYS.USERS)) {
-      this.set(STORAGE_KEYS.USERS, DEMO_USERS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.COUNTRIES)) {
-      this.set(STORAGE_KEYS.COUNTRIES, DEMO_COUNTRIES);
-    }
-    if (!this.hasKey(STORAGE_KEYS.CENTERS)) {
-      this.set(STORAGE_KEYS.CENTERS, DEMO_CENTERS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.BATCHES)) {
-      this.set(STORAGE_KEYS.BATCHES, DEMO_BATCHES);
-    }
-    if (!this.hasKey(STORAGE_KEYS.SCHEDULES)) {
-      this.set(STORAGE_KEYS.SCHEDULES, DEMO_SCHEDULES);
-    }
-    if (!this.hasKey(STORAGE_KEYS.CANDIDATES)) {
-      this.set(STORAGE_KEYS.CANDIDATES, DEMO_CANDIDATES);
-    }
-    if (!this.hasKey(STORAGE_KEYS.RESERVATIONS)) {
-      this.set(STORAGE_KEYS.RESERVATIONS, DEMO_RESERVATIONS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.TASKS)) {
-      this.set(STORAGE_KEYS.TASKS, DEMO_TASKS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.WORKSHEETS)) {
-      this.set(STORAGE_KEYS.WORKSHEETS, DEMO_WORKSHEETS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.TASK_ALLOCATIONS)) {
-      this.set(STORAGE_KEYS.TASK_ALLOCATIONS, DEMO_TASK_ALLOCATIONS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.ASSESSOR_LOTTERY)) {
-      this.set(STORAGE_KEYS.ASSESSOR_LOTTERY, DEMO_ASSESSOR_LOTTERY);
-    }
-    if (!this.hasKey(STORAGE_KEYS.TASK_LOTTERY)) {
-      this.set(STORAGE_KEYS.TASK_LOTTERY, DEMO_TASK_LOTTERY);
-    }
-    if (!this.hasKey(STORAGE_KEYS.ASSESSMENTS)) {
-      this.set(STORAGE_KEYS.ASSESSMENTS, DEMO_ASSESSMENTS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.RESULTS)) {
-      this.set(STORAGE_KEYS.RESULTS, DEMO_RESULTS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.EVALUATION_RATINGS)) {
-      this.set(STORAGE_KEYS.EVALUATION_RATINGS, DEMO_EVALUATION_RATINGS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.EVALUATION_SHEETS)) {
-      this.set(STORAGE_KEYS.EVALUATION_SHEETS, DEMO_EVALUATION_SHEETS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.VARIANCE_RECORDS)) {
-      this.set(STORAGE_KEYS.VARIANCE_RECORDS, DEMO_VARIANCE_RECORDS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.COMPLAINTS)) {
-      this.set(STORAGE_KEYS.COMPLAINTS, DEMO_COMPLAINTS);
-    }
-    if (!this.hasKey(STORAGE_KEYS.LIVE_ACTIVITY)) {
-      this.set(STORAGE_KEYS.LIVE_ACTIVITY, DEMO_LIVE_ACTIVITY);
-    }
+    this.ensurePredefinedItems(STORAGE_KEYS.USERS, DEMO_USERS, true);
+    this.ensurePredefinedItems(STORAGE_KEYS.COUNTRIES, DEMO_COUNTRIES);
+    this.ensurePredefinedItems(STORAGE_KEYS.CENTERS, DEMO_CENTERS);
+    this.ensurePredefinedItems(STORAGE_KEYS.BATCHES, DEMO_BATCHES);
+    this.ensurePredefinedItems(STORAGE_KEYS.SCHEDULES, DEMO_SCHEDULES);
+    this.ensurePredefinedItems(STORAGE_KEYS.CANDIDATES, DEMO_CANDIDATES);
+    this.ensurePredefinedItems(STORAGE_KEYS.RESERVATIONS, DEMO_RESERVATIONS);
+    this.ensurePredefinedItems(STORAGE_KEYS.TASKS, DEMO_TASKS);
+    this.ensurePredefinedItems(STORAGE_KEYS.WORKSHEETS, DEMO_WORKSHEETS);
+    this.ensurePredefinedItems(STORAGE_KEYS.TASK_ALLOCATIONS, DEMO_TASK_ALLOCATIONS);
+    this.ensurePredefinedItems(STORAGE_KEYS.ASSESSOR_LOTTERY, DEMO_ASSESSOR_LOTTERY);
+    this.ensurePredefinedItems(STORAGE_KEYS.TASK_LOTTERY, DEMO_TASK_LOTTERY);
+    this.ensurePredefinedItems(STORAGE_KEYS.ASSESSMENTS, DEMO_ASSESSMENTS);
+    this.ensurePredefinedItems(STORAGE_KEYS.RESULTS, DEMO_RESULTS);
+    this.ensurePredefinedItems(STORAGE_KEYS.EVALUATION_RATINGS, DEMO_EVALUATION_RATINGS);
+    this.ensurePredefinedItems(STORAGE_KEYS.EVALUATION_SHEETS, DEMO_EVALUATION_SHEETS);
+    this.ensurePredefinedItems(STORAGE_KEYS.VARIANCE_RECORDS, DEMO_VARIANCE_RECORDS);
+    this.ensurePredefinedItems(STORAGE_KEYS.COMPLAINTS, DEMO_COMPLAINTS);
+    this.ensurePredefinedItems(STORAGE_KEYS.LIVE_ACTIVITY, DEMO_LIVE_ACTIVITY);
+
     if (!this.hasKey(STORAGE_KEYS.CONFIG_APRO)) {
       this.set(STORAGE_KEYS.CONFIG_APRO, DEMO_APRO_CONFIG);
     }

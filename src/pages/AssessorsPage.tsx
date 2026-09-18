@@ -17,7 +17,7 @@ import { Select } from '../components/ui/Select';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
-import { User, Schedule, Candidate, AssessorLottery } from '../types';
+import { User, Schedule, Candidate, AssessorLottery, Center } from '../types';
 
 export interface AssessorsPageProps {
   onNavigate?: (path: string) => void;
@@ -28,7 +28,16 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  const userCenterId = user?.centerId || 'ctr-sa-1';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
+  const canSwitchCenter = isSuperAdmin || isCountryAccount;
+
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [selectedCenterId, setSelectedCenterId] = useState<string>(
+    user?.centerId || 'ALL'
+  );
+
+  const userCenterId = user?.centerId || (selectedCenterId !== 'ALL' ? selectedCenterId : 'ctr-sa-1');
 
   const [activeTab, setActiveTab] = useState<string>('list');
   const [assessors, setAssessors] = useState<User[]>([]);
@@ -49,6 +58,7 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
     username: '',
     occupation: 'Electrical Installation',
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+    centerId: user?.centerId || 'ctr-sa-1',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -57,17 +67,31 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
 
   const loadData = () => {
     const allUsers = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
-    const centerAssessors = allUsers.filter(u => u.role === 'ASSESSOR' && u.centerId === userCenterId);
+    const allCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+    setCenters(allCenters);
+
+    const effectiveCenter = user?.centerId || selectedCenterId;
+
+    const centerAssessors = allUsers.filter(u => {
+      if (u.role !== 'ASSESSOR') return false;
+      if (effectiveCenter === 'ALL') {
+        if (isCountryAccount && user?.countryId) {
+          return u.countryId === user.countryId;
+        }
+        return true;
+      }
+      return u.centerId === effectiveCenter;
+    });
     setAssessors(centerAssessors);
 
     const allSchedules = StorageService.get<Schedule[]>(STORAGE_KEYS.SCHEDULES, []);
-    setSchedules(allSchedules.filter(s => s.centerId === userCenterId));
+    setSchedules(effectiveCenter === 'ALL' ? allSchedules : allSchedules.filter(s => s.centerId === effectiveCenter));
 
     const allCandidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
-    setCandidates(allCandidates.filter(c => c.centerId === userCenterId));
+    setCandidates(effectiveCenter === 'ALL' ? allCandidates : allCandidates.filter(c => c.centerId === effectiveCenter));
 
     const allLotteries = StorageService.get<AssessorLottery[]>(STORAGE_KEYS.ASSESSOR_LOTTERY, []);
-    setLotteries(allLotteries.filter(l => l.centerId === userCenterId));
+    setLotteries(effectiveCenter === 'ALL' ? allLotteries : allLotteries.filter(l => l.centerId === effectiveCenter));
   };
 
   useEffect(() => {
@@ -78,7 +102,7 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
     if (tabParam && ['list', 'schedule', 'lottery'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
-  }, []);
+  }, [selectedCenterId, user?.centerId]);
 
   const handleOpenAdd = () => {
     const autoUsername = `assessor.${Math.floor(100 + Math.random() * 900)}`;
@@ -89,6 +113,7 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
       username: autoUsername,
       occupation: 'Electrical Installation',
       status: 'ACTIVE',
+      centerId: userCenterId,
     });
     setFormErrors({});
     setIsAddOpen(true);
@@ -249,7 +274,24 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+              {canSwitchCenter && (
+                <select
+                  value={selectedCenterId}
+                  onChange={e => setSelectedCenterId(e.target.value)}
+                  className="text-xs bg-white border border-[#E8D9D2] rounded-lg py-1.5 px-2.5 focus:outline-none focus:border-[#7A2E3A]"
+                >
+                  <option value="ALL">All Centers ({centers.length})</option>
+                  {centers
+                    .filter(c => !isCountryAccount || !user?.countryId || c.countryId === user.countryId)
+                    .map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.countryId === 'cnt-bd' ? '🇧🇩 ' : c.countryId === 'cnt-sa' ? '🇸🇦 ' : '🇦🇪 '}
+                        {c.nameEn} ({c.code})
+                      </option>
+                    ))}
+                </select>
+              )}
               <Filter className="w-4 h-4 text-[#806F6F]" />
               <select
                 value={statusFilter}
@@ -271,7 +313,7 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
                   <th className="py-2.5 px-3 text-start font-semibold">Assessor Name</th>
                   <th className="py-2.5 px-3 text-start font-semibold">Username</th>
                   <th className="py-2.5 px-3 text-start font-semibold">Contact</th>
-                  <th className="py-2.5 px-3 text-start font-semibold">Center ID</th>
+                  <th className="py-2.5 px-3 text-start font-semibold">Assessment Center</th>
                   <th className="py-2.5 px-3 text-start font-semibold">Status</th>
                   <th className="py-2.5 px-3 text-end font-semibold">Actions</th>
                 </tr>
@@ -280,54 +322,64 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
                 {filteredAssessors.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-xs text-[#806F6F]">
-                      No assessors registered for this center.
+                      No assessors registered for this center filter.
                     </td>
                   </tr>
                 ) : (
-                  filteredAssessors.map(ass => (
-                    <tr key={ass.id} className="hover:bg-[#FFFCF8]/80 transition-colors">
-                      <td className="py-2.5 px-3 font-semibold text-[#3F3030]">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-[#F8ECEE] text-[#7A2E3A] font-bold text-xs flex items-center justify-center shrink-0">
-                            {ass.name.charAt(0)}
+                  filteredAssessors.map(ass => {
+                    const ctr = centers.find(c => c.id === ass.centerId);
+                    return (
+                      <tr key={ass.id} className="hover:bg-[#FFFCF8]/80 transition-colors">
+                        <td className="py-2.5 px-3 font-semibold text-[#3F3030]">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-[#F8ECEE] text-[#7A2E3A] font-bold text-xs flex items-center justify-center shrink-0">
+                              {ass.name.charAt(0)}
+                            </div>
+                            <div>
+                              <span>{ass.name}</span>
+                              <span className="text-[10px] text-[#806F6F] block">ISO 17024 Accredited</span>
+                            </div>
                           </div>
-                          <div>
-                            <span>{ass.name}</span>
-                            <span className="text-[10px] text-[#806F6F] block">ISO 17024 Accredited</span>
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-[#7A2E3A] font-semibold">{ass.username || '—'}</td>
+                        <td className="py-2.5 px-3 text-[#806F6F]">
+                          <div>{ass.email}</div>
+                          <div className="text-[10px] font-mono">{ass.phone || 'N/A'}</div>
+                        </td>
+                        <td className="py-2.5 px-3 text-[#806F6F]">
+                          <span className="font-medium text-[#3F3030]">
+                            {ctr ? ctr.nameEn : (ass.centerId || '—')}
+                          </span>
+                          {ctr && (
+                            <span className="block text-[10px] font-mono text-[#806F6F]">{ctr.code}</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <StatusBadge status={ass.status} />
+                        </td>
+                        <td className="py-2.5 px-3 text-end">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setViewingAssessor(ass)}
+                              className="p-1 px-2 rounded text-xs text-[#7A2E3A] hover:bg-[#F8ECEE] font-medium"
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(ass)}
+                              className={`p-1 px-2 rounded text-xs font-medium border ${
+                                ass.status === 'ACTIVE' ? 'text-amber-700 hover:bg-amber-50 border-amber-200' : 'text-emerald-700 hover:bg-emerald-50 border-emerald-200'
+                              }`}
+                            >
+                              {ass.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-[#7A2E3A] font-semibold">{ass.username || '—'}</td>
-                      <td className="py-2.5 px-3 text-[#806F6F]">
-                        <div>{ass.email}</div>
-                        <div className="text-[10px] font-mono">{ass.phone || 'N/A'}</div>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-[#806F6F]">{ass.centerId}</td>
-                      <td className="py-2.5 px-3">
-                        <StatusBadge status={ass.status} />
-                      </td>
-                      <td className="py-2.5 px-3 text-end">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setViewingAssessor(ass)}
-                            className="p-1 px-2 rounded text-xs text-[#7A2E3A] hover:bg-[#F8ECEE] font-medium"
-                          >
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(ass)}
-                            className={`p-1 px-2 rounded text-xs font-medium border ${
-                              ass.status === 'ACTIVE' ? 'text-amber-700 hover:bg-amber-50 border-amber-200' : 'text-emerald-700 hover:bg-emerald-50 border-emerald-200'
-                            }`}
-                          >
-                            {ass.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

@@ -397,7 +397,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
                     occupationReportData.map(o => [o.occupation, o.totalCandidates, o.passed, o.failed, `${o.passRate}%`, `${o.avgScore}%`, `${o.highestScore}%`]));
                 } else if (activeTab === 'batch') {
                   exportToCSV('Batch_Wise_Report', ['Batch Code', 'Center', 'Occupation', 'Start Date', 'End Date', 'Enrolled', 'Evaluated', 'Certified', 'Completion Rate %', 'Status'],
-                    batchReportData.map(b => [b.batchCode, b.centerName, b.occupation, b.startDate, b.endDate, b.enrolled, b.evaluated, b.certified, `${b.completionRate}%`, b.status]));
+                    batchReportData.map(b => [b.batchCode, b.centerName, b.occupation, b.startDate, b.endDate || '—', b.enrolled, b.evaluated, b.certified, `${b.completionRate}%`, b.status]));
                 } else {
                   exportToCSV('Results_Master_Report', ['Candidate', 'APRO #', 'Center', 'Occupation', 'Theory', 'Practical', 'Total Score', 'Grade', 'Status'],
                     filteredResults.map(r => [r.candidateName || 'Candidate', r.aproReference || '-', r.centerId || '-', r.occupation || '-', r.theoryScore || 0, r.practicalScore || 0, `${r.score}%`, r.grade, r.status]));

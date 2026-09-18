@@ -86,10 +86,13 @@ export interface Batch {
   candidateCapacity?: number;
   candidateCount: number;
   startDate: string;
-  endDate: string;
+  endDate?: string;
+  startTime?: string;
+  startDateTime?: string;
   assessmentDate?: string;
   assessmentTime?: string;
   status: 'DRAFT' | 'READY' | 'ACTIVE' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'PENDING';
+  assessorIds?: string[];
 }
 
 export type CandidateAssessmentStatus = 
@@ -133,18 +136,53 @@ export interface CandidatePhoto {
   verified: boolean;
 }
 
+export interface PassportVerificationRecord {
+  id?: string;
+  passportNumber: string;
+  candidateId: string;
+  candidateName: string;
+  verificationPhoto: string;
+  status: 'CONFIRMED' | 'PENDING';
+  confirmedDate: string;
+  confirmedTime: string;
+  confirmedAt: string;
+  confirmedBy: string;
+  passportMatchConfirmed: boolean;
+}
+
+export interface CandidateExitRecord {
+  id?: string;
+  candidateId: string;
+  candidateName: string;
+  passportNumber: string;
+  status: 'CONFIRMED' | 'PENDING';
+  exitDate: string;
+  exitTime: string;
+  exitAt: string;
+  exitBy: string;
+  notes?: string;
+}
+
 export interface Reservation {
   id: string;
   reservationId: string;
-  passportNumber: string;
+  testTakerName?: string;
   candidateName: string;
+  project?: string;
+  idNo?: string;
+  passportNumber: string;
+  cprNumber?: string;
+  bookingNo?: string;
   occupation: string;
-  status: 'VALID' | 'CANCELLED' | 'PRELOADED' | 'ENROLLED' | 'INVALID';
+  status: 'VALID' | 'CANCELLED' | 'PRELOADED' | 'ENROLLED' | 'INVALID' | 'Reserved' | 'CONFIRMED' | string;
+  attachment?: string;
   centerId: string;
   batchId?: string;
   countryId: string;
   notes?: string;
   importedAt: string;
+  assessorId?: string;
+  assessorName?: string;
 }
 
 export type IDCardStatus = 'NOT_REQUESTED' | 'REQUESTED' | 'APPROVED' | 'GENERATED';
@@ -153,6 +191,12 @@ export interface Candidate {
   id: string;
   fullNameEn: string;
   fullNameAr: string;
+  testTakerName?: string;
+  project?: string;
+  idNo?: string;
+  bookingNo?: string;
+  cprNumber?: string;
+  attachment?: string;
   passportNumber: string;
   aproReference: string; // e.g. "APRO-SA-92812"
   nationalId?: string;
@@ -191,6 +235,21 @@ export interface Candidate {
   idCardStatus?: IDCardStatus;
   idCardNumber?: string;
   idCardGeneratedAt?: string;
+  supportStaffVerificationStatus?: 'PENDING' | 'CONFIRMED';
+  supportStaffVerifiedAt?: string;
+  supportStaffConfirmationDate?: string;
+  supportStaffConfirmationTime?: string;
+  supportStaffVerifiedBy?: string;
+  passportMatchConfirmed?: boolean;
+  passportVerificationPhoto?: string;
+  passportVerificationRecord?: PassportVerificationRecord;
+  exitStatus?: 'PENDING' | 'CONFIRMED';
+  exitVerifiedAt?: string;
+  exitConfirmationDate?: string;
+  exitConfirmationTime?: string;
+  exitVerifiedBy?: string;
+  exitNotes?: string;
+  exitRecord?: CandidateExitRecord;
 }
 
 export type TaskDifficulty = 'FOUNDATIONAL' | 'INTERMEDIATE' | 'ADVANCED';
@@ -470,6 +529,7 @@ export type AuditAction =
   | 'UPDATE_CANDIDATE'
   | 'UPDATE_COMPLAINT'
   | 'CANDIDATE_VERIFICATION'
+  | 'CANDIDATE_EXIT'
   | 'START_PRACTICAL'
   | 'COMPLETE_PRACTICAL'
   | 'UPLOAD_EVIDENCE'

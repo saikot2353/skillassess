@@ -68,6 +68,7 @@ export const ar = {
     reservationImport: 'استيراد الحجوزات',
     preloadedCandidates: 'المرشحون المجهزون',
     candidateList: 'قائمة المرشحين',
+    candidateExitList: 'قائمة خروج المرشحين',
     candidateDetails: 'تفاصيل المرشح',
     enrollment: 'تسجيل الحضور والتحقق',
     photos: 'صور المرشحين',

@@ -69,6 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const foundUser = users.find(u => 
       u.email.trim().toLowerCase() === cleanId || 
       (u.username && u.username.trim().toLowerCase() === cleanId) ||
+      (cleanId === 'dhaka.admin' && (u.username === 'admin.dhaka' || u.email === 'dhaka.admin@skillassess360.com')) ||
+      (cleanId === 'kamal.assessor' && (u.username === 'assessor.kamal' || u.email === 'kamal.assessor@skillassess360.com')) ||
+      (cleanId === 'anowar.staff' && (u.username === 'staff.anowar' || u.email === 'anowar.staff@skillassess360.com')) ||
       (cleanId === 'assessor01' && (u.role === 'ASSESSOR' || u.id === 'usr-4')) ||
       (cleanId === 'support01' && (u.role === 'SUPPORT_STAFF' || u.id === 'usr-5'))
     );
@@ -99,10 +102,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'country.bd': 'country123',
       'admin.riyadh': 'center123',
       'center.admin': 'center123',
+      'admin.dhaka': 'center123',
+      'dhaka.admin': 'center123',
+      'admin.dubai': 'center123',
+      'dubai.admin': 'center123',
+      'admin.jeddah': 'center123',
+      'admin.dammam': 'center123',
       'assessor01': 'assessor123',
       'assessor.lead': 'assessor123',
+      'assessor.kamal': 'assessor123',
+      'kamal.assessor': 'assessor123',
+      'assessor.salem': 'assessor123',
+      'assessor.ibrahim': 'assessor123',
+      'assessor.rashid': 'assessor123',
       'support01': 'support123',
       'support.staff': 'support123',
+      'staff.anowar': 'support123',
+      'anowar.staff': 'support123',
+      'staff.maryam': 'support123',
+      'staff.abdulrahman': 'support123',
+      'staff.mona': 'support123',
+      'staff.hessa': 'support123',
+      'staff.fatima': 'support123',
     };
 
     const expectedPass = demoPasswordMap[foundUser.username || ''] || 
