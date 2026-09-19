@@ -23,7 +23,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
-  const isSupportStaff = user?.role === 'SUPPORT_STAFF';
+  const isSupportStaff = user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
   const isCenterScoped = isCenterAdmin || isSupportStaff;
 
   const [batches, setBatches] = useState<Batch[]>([]);

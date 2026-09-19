@@ -72,7 +72,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     const loadedCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
 
     const filteredUsers = isCenterAdmin 
-      ? loadedUsers.filter(u => u.id === currentUser?.id || ((u.role === 'ASSESSOR' || u.role === 'SUPPORT_STAFF') && u.centerId === userCenterId))
+      ? loadedUsers.filter(u => u.id === currentUser?.id || ((u.role === 'ASSESSOR' || u.role === 'SUPPORT_STAFF' || u.role === 'ORGANIZER' || u.role === 'CBT_TEST_SUPPORT') && u.centerId === userCenterId))
       : loadedUsers;
 
     setUsers(filteredUsers);
@@ -86,7 +86,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     // Parse URL params
     const params = new URLSearchParams(window.location.search);
     const roleParam = params.get('role');
-    if (roleParam && ['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF'].includes(roleParam)) {
+    if (roleParam && ['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT'].includes(roleParam)) {
       setActiveRoleTab(roleParam as Role);
     }
 
@@ -169,7 +169,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     if (formData.role === 'COUNTRY_ACCOUNT' && !formData.countryId) {
       errors.countryId = 'Country allocation is mandatory for this role';
     }
-    if (['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF'].includes(formData.role) && !isCenterAdmin && !formData.centerId) {
+    if (['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF', 'ORGANIZER'].includes(formData.role) && !isCenterAdmin && !formData.centerId) {
       errors.centerId = 'Center allocation is mandatory for this role';
     }
 
@@ -197,7 +197,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
       showToast(t.toasts.updatedSuccess, 'success');
       if (viewingUser?.id === updated.id) setViewingUser(updated);
     } else {
-      const targetRole = isCenterAdmin ? (formData.role === 'SUPPORT_STAFF' ? 'SUPPORT_STAFF' : 'ASSESSOR') : formData.role;
+      const targetRole = isCenterAdmin ? (['SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT'].includes(formData.role) ? formData.role : 'ASSESSOR') : formData.role;
       const newUser: User = {
         id: `usr-${Date.now()}`,
         name: formData.name.trim(),
@@ -286,6 +286,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
       case 'ASSESSOR':
         return 'success';
       case 'SUPPORT_STAFF':
+      case 'ORGANIZER':
+      case 'CBT_TEST_SUPPORT':
       default:
         return 'neutral';
     }
@@ -342,6 +344,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     CENTER_ADMIN: users.filter(u => u.role === 'CENTER_ADMIN').length,
     ASSESSOR: users.filter(u => u.role === 'ASSESSOR').length,
     SUPPORT_STAFF: users.filter(u => u.role === 'SUPPORT_STAFF').length,
+    ORGANIZER: users.filter(u => u.role === 'ORGANIZER').length,
+    CBT_TEST_SUPPORT: users.filter(u => u.role === 'CBT_TEST_SUPPORT').length,
   };
 
   const columns: Column<User>[] = [
@@ -536,6 +540,28 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
         >
           {t.roles.SUPPORT_STAFF} ({roleTabCounts.SUPPORT_STAFF})
         </button>
+
+        <button
+          onClick={() => { setActiveRoleTab('ORGANIZER'); setCurrentPage(1); }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeRoleTab === 'ORGANIZER'
+              ? 'bg-[#7A2E3A] text-white shadow-xs'
+              : 'text-[#806F6F] hover:text-[#3F3030] hover:bg-white'
+          }`}
+        >
+          {t.roles.ORGANIZER} ({roleTabCounts.ORGANIZER})
+        </button>
+
+        <button
+          onClick={() => { setActiveRoleTab('CBT_TEST_SUPPORT'); setCurrentPage(1); }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeRoleTab === 'CBT_TEST_SUPPORT'
+              ? 'bg-[#7A2E3A] text-white shadow-xs'
+              : 'text-[#806F6F] hover:text-[#3F3030] hover:bg-white'
+          }`}
+        >
+          {t.roles.CBT_TEST_SUPPORT} ({roleTabCounts.CBT_TEST_SUPPORT})
+        </button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -674,6 +700,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
                     ? [
                         { value: 'ASSESSOR', label: `1. ${t.roles.ASSESSOR}` },
                         { value: 'SUPPORT_STAFF', label: `2. ${t.roles.SUPPORT_STAFF}` },
+                        { value: 'ORGANIZER', label: `3. ${t.roles.ORGANIZER}` },
+                        { value: 'CBT_TEST_SUPPORT', label: `4. ${t.roles.CBT_TEST_SUPPORT}` },
                       ]
                     : [
                         { value: 'SUPER_ADMIN', label: `1. ${t.roles.SUPER_ADMIN}` },
@@ -681,6 +709,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
                         { value: 'CENTER_ADMIN', label: `3. ${t.roles.CENTER_ADMIN}` },
                         { value: 'ASSESSOR', label: `4. ${t.roles.ASSESSOR}` },
                         { value: 'SUPPORT_STAFF', label: `5. ${t.roles.SUPPORT_STAFF}` },
+                        { value: 'ORGANIZER', label: `6. ${t.roles.ORGANIZER}` },
+                        { value: 'CBT_TEST_SUPPORT', label: `7. ${t.roles.CBT_TEST_SUPPORT}` },
                       ]
                 }
               />
@@ -710,7 +740,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
                     />
                   )}
 
-                  {['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF'].includes(formData.role) && (
+                  {['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT'].includes(formData.role) && (
                     <Select
                       label={t.usersModule.linkCenter}
                       required

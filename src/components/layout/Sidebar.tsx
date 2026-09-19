@@ -5,7 +5,7 @@ import {
   Award, Activity, MessageSquareWarning, ShieldAlert, Settings2,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X,
   FileText, CreditCard, Sliders, Shield, UserCircle,
-  Bell, Sparkles, Wrench
+  Bell, Sparkles, Wrench, CheckCircle2
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -63,8 +63,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isAssessor = user?.role === 'ASSESSOR';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
-  const isSupportStaff = user?.role === 'SUPPORT_STAFF';
-  const center = (isCenterAdmin || isSupportStaff) && user?.centerId
+  const isSupportStaff = user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
+  const isCbtTestSupport = user?.role === 'CBT_TEST_SUPPORT';
+  const center = (isCenterAdmin || isSupportStaff || isCbtTestSupport) && user?.centerId
     ? StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []).find(c => c.id === user.centerId)
     : null;
 
@@ -108,6 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'center-admins', path: '/users?role=CENTER_ADMIN', labelKey: 'centerAdmins' },
         { id: 'assessors', path: '/users?role=ASSESSOR', labelKey: 'assessors' },
         { id: 'support-staff', path: '/users?role=SUPPORT_STAFF', labelKey: 'supportStaff' },
+        { id: 'organizers', path: '/users?role=ORGANIZER', labelKey: 'organizers' },
       ],
     },
     {
@@ -118,6 +120,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'schedules', path: '/schedules', labelKey: 'schedules' },
         { id: 'batches', path: '/batches', labelKey: 'batches' },
         { id: 'candidates', path: '/candidates', labelKey: 'candidates' },
+        { id: 'candidates-pending', path: '/enrollment-pending', labelKey: 'enrollmentPending' },
+        { id: 'candidates-cbt-pending', path: '/cbt-exam-pending', labelKey: 'cbtExamPending' },
+        { id: 'candidates-cbt-confirmed', path: '/cbt-confirmed', labelKey: 'cbtConfirmed' },
+        { id: 'candidates-practical-pending', path: '/practical-pending', labelKey: 'practicalPending' },
+        { id: 'candidates-practical-confirmed', path: '/practical-confirmed', labelKey: 'practicalConfirmed' },
+        { id: 'candidates-eval-register', path: '/evaluation-sheet-register', labelKey: 'evaluationSheetRegister' },
+        { id: 'candidates-verify', path: '/enroll-verify', labelKey: 'enrollVerify' },
         { id: 'candidates-exit', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
         { id: 'assessments-list', path: '/assessments', labelKey: 'assessments' },
         { id: 'results', path: '/results', labelKey: 'results' },
@@ -244,6 +253,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: UserCheck,
       subItems: [
         { id: 'can-list', path: '/candidates', labelKey: 'candidateList' },
+        { id: 'can-pending', path: '/enrollment-pending', labelKey: 'enrollmentPending' },
+        { id: 'can-cbt-pending', path: '/cbt-exam-pending', labelKey: 'cbtExamPending' },
+        { id: 'can-cbt-confirmed', path: '/cbt-confirmed', labelKey: 'cbtConfirmed' },
+        { id: 'can-practical-pending', path: '/practical-pending', labelKey: 'practicalPending' },
+        { id: 'can-practical-confirmed', path: '/practical-confirmed', labelKey: 'practicalConfirmed' },
+        { id: 'can-eval-register', path: '/evaluation-sheet-register', labelKey: 'evaluationSheetRegister' },
+        { id: 'can-verify', path: '/enroll-verify', labelKey: 'enrollVerify' },
         { id: 'can-exit-list', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
         { id: 'can-enroll', path: '/enrollment', labelKey: 'enrollment' },
         { id: 'can-photos', path: '/candidate-photos', labelKey: 'photos' },
@@ -334,6 +350,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKey: 'practicalTaskManagement',
       icon: Wrench,
       subItems: [
+        { id: 'pra-pending', path: '/assessor/practical-pending', labelKey: 'practicalPending' },
+        { id: 'pra-confirmed', path: '/assessor/practical-confirmed', labelKey: 'practicalConfirmed' },
+        { id: 'pra-eval-register', path: '/assessor/evaluation-sheet-register', labelKey: 'evaluationSheetRegister' },
         { id: 'pra-verify', path: '/assessor/candidate-verification', labelKey: 'candidateVerification' },
         { id: 'pra-task', path: '/assessor/practical-task', labelKey: 'practicalTask' },
         { id: 'pra-evidence', path: '/assessor/evidence', labelKey: 'evidence' },
@@ -373,6 +392,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: UserCheck,
       subItems: [
         { id: 'can-list', path: '/candidates', labelKey: 'candidateList' },
+        { id: 'can-pending', path: '/enrollment-pending', labelKey: 'enrollmentPending' },
+        { id: 'can-cbt-pending', path: '/cbt-exam-pending', labelKey: 'cbtExamPending' },
+        { id: 'can-cbt-confirmed', path: '/cbt-confirmed', labelKey: 'cbtConfirmed' },
+        { id: 'can-verify', path: '/enroll-verify', labelKey: 'enrollVerify' },
         { id: 'can-exit-list', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
         { id: 'can-photos', path: '/candidate-photos', labelKey: 'photos' },
       ],
@@ -406,11 +429,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
+  const cbtTestSupportNavGroups: NavGroup[] = [
+    {
+      id: 'dashboard',
+      labelKey: 'dashboard',
+      path: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      id: 'cbt-exam-pending',
+      labelKey: 'cbtExamPending',
+      path: '/cbt-exam-pending',
+      icon: ClipboardCheck,
+    },
+    {
+      id: 'cbt-exam-confirmed',
+      labelKey: 'cbtConfirmed',
+      path: '/cbt-confirmed',
+      icon: CheckCircle2,
+    },
+    {
+      id: 'candidates',
+      labelKey: 'candidates',
+      icon: UserCheck,
+      subItems: [
+        { id: 'cbt-can-pending', path: '/cbt-exam-pending', labelKey: 'cbtExamPending' },
+        { id: 'cbt-can-confirmed', path: '/cbt-confirmed', labelKey: 'cbtConfirmed' },
+        { id: 'cbt-can-list', path: '/candidates', labelKey: 'candidateList' },
+        { id: 'cbt-can-photos', path: '/candidate-photos', labelKey: 'photos' },
+      ],
+    },
+    {
+      id: 'batches',
+      labelKey: 'batchManagement',
+      path: '/batches',
+      icon: Layers,
+    },
+    {
+      id: 'assessment-support',
+      labelKey: 'assessmentSupport',
+      icon: Activity,
+      subItems: [
+        { id: 'cbt-monitoring', path: '/assessment-monitoring?tab=pipeline', labelKey: 'assessmentMonitoring' },
+        { id: 'cbt-activities', path: '/assessment-monitoring?tab=live', labelKey: 'todaysActivities' },
+      ],
+    },
+    {
+      id: 'notifications',
+      labelKey: 'notifications',
+      path: '/support/notifications',
+      icon: Bell,
+    },
+    {
+      id: 'profile',
+      labelKey: 'profile',
+      path: '/profile',
+      icon: UserCircle,
+    },
+  ];
+
   const navGroups = isAssessor 
     ? assessorNavGroups 
-    : (isSupportStaff
-        ? supportStaffNavGroups
-        : (isCenterAdmin ? centerAdminNavGroups : superAdminNavGroups));
+    : (isCbtTestSupport
+        ? cbtTestSupportNavGroups
+        : (isSupportStaff
+            ? supportStaffNavGroups
+            : (isCenterAdmin ? centerAdminNavGroups : superAdminNavGroups)));
 
   // Auto-expand active group based on currentPath
   useEffect(() => {
@@ -461,11 +545,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="text-[10px] text-[#806F6F] font-medium tracking-wide truncate block" title={center ? (language === 'ar' ? center.nameAr : center.nameEn) : undefined}>
                   {isAssessor 
                     ? (language === 'ar' ? 'بوابة المقيّم المعتمد' : 'Assessor Certified Portal')
-                    : (isSupportStaff
-                        ? (center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${language === 'ar' ? 'فريق الدعم' : 'Support Staff'}` : (language === 'ar' ? 'فريق الدعم التشغيلي' : 'Support Staff Operations'))
-                        : (isCenterAdmin 
-                            ? (center ? (language === 'ar' ? center.nameAr : center.nameEn) : 'Center Administration')
-                            : 'Super Admin Governance'))}
+                    : (isCbtTestSupport
+                        ? (center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${t.roles.CBT_TEST_SUPPORT}` : (language === 'ar' ? 'دعم اختبار CBT' : 'CBT Test Support Operations'))
+                        : (user?.role === 'ORGANIZER'
+                            ? (center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${t.roles.ORGANIZER}` : (language === 'ar' ? 'منسق المركز المعتمد' : 'Center Organizer Operations'))
+                            : (isSupportStaff
+                                ? (center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${language === 'ar' ? 'فريق الدعم' : 'Support Staff'}` : (language === 'ar' ? 'فريق الدعم التشغيلي' : 'Support Staff Operations'))
+                                : (isCenterAdmin 
+                                    ? (center ? (language === 'ar' ? center.nameAr : center.nameEn) : 'Center Administration')
+                                    : 'Super Admin Governance'))))}
                 </span>
               </div>
             )}

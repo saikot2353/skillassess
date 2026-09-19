@@ -458,6 +458,7 @@ export const AuditLogsPage: React.FC = () => {
                 <option value="CENTER_ADMIN">CENTER_ADMIN</option>
                 <option value="ASSESSOR">ASSESSOR</option>
                 <option value="SUPPORT_STAFF">SUPPORT_STAFF</option>
+                <option value="ORGANIZER">ORGANIZER</option>
                 <option value="COUNTRY_ACCOUNT">COUNTRY_ACCOUNT</option>
               </select>
             </div>

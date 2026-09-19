@@ -23,6 +23,7 @@ export const STORAGE_KEYS = {
   WORKSHEETS: 'skillassess360_worksheets',
   TASK_ALLOCATIONS: 'skillassess360_task_allocations',
   PASSPORT_VERIFICATIONS: 'skillassess360_passport_verifications',
+  CANDIDATE_PHOTOS: 'skillassess360_candidate_photos',
   CANDIDATE_EXITS: 'skillassess360_candidate_exits',
   ASSESSOR_LOTTERY: 'skillassess360_assessor_lottery',
   TASK_LOTTERY: 'skillassess360_task_lottery',

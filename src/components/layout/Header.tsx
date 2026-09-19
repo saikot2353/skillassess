@@ -50,6 +50,8 @@ export const Header: React.FC<HeaderProps> = ({
     { role: 'CENTER_ADMIN', label: t.roles.CENTER_ADMIN },
     { role: 'ASSESSOR', label: t.roles.ASSESSOR },
     { role: 'SUPPORT_STAFF', label: t.roles.SUPPORT_STAFF },
+    { role: 'ORGANIZER', label: t.roles.ORGANIZER },
+    { role: 'CBT_TEST_SUPPORT', label: t.roles.CBT_TEST_SUPPORT },
   ];
 
   return (

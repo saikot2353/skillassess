@@ -3,6 +3,7 @@ import { ClipboardCheck, Search, Eye, Shield } from 'lucide-react';
 import { Assessment, Candidate } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Table, Column } from '../components/ui/Table';
 import { StatusBadge } from '../components/ui/StatusBadge';
@@ -13,6 +14,10 @@ import { AssessmentTraceabilityModal } from '../components/AssessmentTraceabilit
 
 export const AssessmentsPage: React.FC = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
+
+  const userCenterId = user?.centerId;
+  const isCenterScoped = user?.role === 'CENTER_ADMIN' || user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -23,9 +28,16 @@ export const AssessmentsPage: React.FC = () => {
   const pageSize = 5;
 
   useEffect(() => {
-    setAssessments(StorageService.get<Assessment[]>(STORAGE_KEYS.ASSESSMENTS, []));
-    setCandidates(StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []));
-  }, []);
+    const allAssessments = StorageService.get<Assessment[]>(STORAGE_KEYS.ASSESSMENTS, []);
+    const allCandidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
+    if (isCenterScoped && userCenterId) {
+      setAssessments(allAssessments.filter(a => a.centerId === userCenterId));
+      setCandidates(allCandidates.filter(c => c.centerId === userCenterId));
+    } else {
+      setAssessments(allAssessments);
+      setCandidates(allCandidates);
+    }
+  }, [isCenterScoped, userCenterId]);
 
   const getCandidateName = (cid: string) => {
     const c = candidates.find(item => item.id === cid);

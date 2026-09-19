@@ -26,6 +26,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
   const userCenterId = user?.centerId || 'ctr-sa-1';
   const userCountryId = user?.countryId || 'cnt-sa';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
+  const isCenterScoped = isCenterAdmin || user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
   const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
   const isAssessor = user?.role === 'ASSESSOR';
 
@@ -60,7 +61,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
     if (isCountryAccount) {
       setSelectedCountry(userCountryId);
     }
-    if (isCenterAdmin) {
+    if (isCenterScoped) {
       setSelectedCenter(userCenterId);
     }
 
@@ -70,28 +71,28 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
     if (tabParam && ['daily', 'monthly', 'center', 'assessor', 'occupation', 'batch', 'result'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
-  }, [userCenterId, userCountryId, isCenterAdmin, isCountryAccount]);
+  }, [userCenterId, userCountryId, isCenterScoped, isCountryAccount]);
 
   // Filtered Centers based on Country and Role Scoping
   const filteredCenters = useMemo(() => {
-    if (isCenterAdmin) return centers.filter(c => c.id === userCenterId);
+    if (isCenterScoped) return centers.filter(c => c.id === userCenterId);
     if (isCountryAccount) return centers.filter(c => c.countryId === userCountryId);
     if (selectedCountry === 'ALL') return centers;
     return centers.filter(c => c.countryId === selectedCountry);
-  }, [centers, selectedCountry, isCenterAdmin, isCountryAccount, userCenterId, userCountryId]);
+  }, [centers, selectedCountry, isCenterScoped, isCountryAccount, userCenterId, userCountryId]);
 
   // Filtered Results based on Role Scoping and Active Filters
   const filteredResults = useMemo(() => {
     return results.filter(r => {
       if (isAssessor && r.assessorId !== user?.id && r.assessorName !== user?.name) return false;
-      if (isCenterAdmin && r.centerId !== userCenterId) return false;
+      if (isCenterScoped && r.centerId !== userCenterId) return false;
       if (isCountryAccount && r.countryId !== userCountryId) return false;
       if (selectedCountry !== 'ALL' && r.countryId !== selectedCountry) return false;
       if (selectedCenter !== 'ALL' && r.centerId !== selectedCenter) return false;
       if (selectedOccupation !== 'ALL' && r.occupation !== selectedOccupation) return false;
       return true;
     });
-  }, [results, selectedCountry, selectedCenter, selectedOccupation, isCenterAdmin, isCountryAccount, isAssessor, user, userCountryId, userCenterId]);
+  }, [results, selectedCountry, selectedCenter, selectedOccupation, isCenterScoped, isCountryAccount, isAssessor, user, userCountryId, userCenterId]);
 
   // Distinct Occupations
   const occupations = useMemo(() => {
@@ -168,7 +169,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
     const assessors = users.filter(u => {
       if (u.role !== 'ASSESSOR') return false;
       if (isAssessor) return u.id === user?.id;
-      if (isCenterAdmin) return u.centerId === userCenterId;
+      if (isCenterScoped) return u.centerId === userCenterId;
       if (isCountryAccount) {
         const countryCenterIds = new Set(filteredCenters.map(c => c.id));
         return u.countryId === userCountryId || (u.centerId && countryCenterIds.has(u.centerId));
@@ -197,7 +198,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
         calibrationScore: `${Math.floor(92 + (assessor.id.charCodeAt(assessor.id.length - 1) % 7))}%`,
       };
     });
-  }, [users, assessments, centers, language, isAssessor, isCenterAdmin, isCountryAccount, user, userCenterId, userCountryId, filteredCenters]);
+  }, [users, assessments, centers, language, isAssessor, isCenterScoped, isCountryAccount, user, userCenterId, userCountryId, filteredCenters]);
 
   // Occupation-wise aggregated data
   const occupationReportData = useMemo(() => {
@@ -225,7 +226,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
   // Batch-wise aggregated data (Role-Scoped)
   const batchReportData = useMemo(() => {
     const targetBatches = batches.filter(b => {
-      if (isCenterAdmin) return b.centerId === userCenterId;
+      if (isCenterScoped) return b.centerId === userCenterId;
       if (isCountryAccount) {
         const countryCenterIds = new Set(filteredCenters.map(c => c.id));
         return countryCenterIds.has(b.centerId);
@@ -254,7 +255,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
         status: batch.status,
       };
     });
-  }, [batches, centers, candidates, results, language, isCenterAdmin, isCountryAccount, userCenterId, userCountryId, filteredCenters]);
+  }, [batches, centers, candidates, results, language, isCenterScoped, isCountryAccount, userCenterId, userCountryId, filteredCenters]);
 
   // Daily aggregated data (by center)
   const dailyReportData = useMemo(() => {
@@ -458,7 +459,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {isCenterAdmin ? (
+          {isCenterScoped ? (
             <div className="flex items-center gap-1.5 bg-[#FFFCF8] border border-[#7A2E3A]/30 rounded-lg px-2.5 py-1 text-xs text-[#7A2E3A] font-semibold">
               <Building2 className="w-3.5 h-3.5" />
               <span>{centers.find(c => c.id === userCenterId)?.nameEn || 'Riyadh Central Technical Hub'}</span>

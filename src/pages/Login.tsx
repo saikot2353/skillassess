@@ -32,6 +32,94 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedHub, setSelectedHub] = useState<'BD' | 'SA' | 'AE' | 'GLOBAL' | 'ALL'>('BD');
+  const [selectedOrganizerCenter, setSelectedOrganizerCenter] = useState<'riyadh' | 'jeddah' | 'dubai' | 'dhaka'>('riyadh');
+  const [selectedCbtCenter, setSelectedCbtCenter] = useState<'riyadh' | 'jeddah' | 'dubai' | 'dhaka'>('riyadh');
+
+  const organizerCenterMap = {
+    riyadh: {
+      username: 'organizer01',
+      password: 'organizer123',
+      centerEn: 'Riyadh Central Technical Hub',
+      centerAr: 'مركز الرياض الرئيسي',
+      flag: '🇸🇦',
+      cityEn: 'Riyadh (KSA)',
+      cityAr: 'الرياض (السعودية)',
+      userDesc: 'Organizer Name (Riyadh Hub)',
+    },
+    jeddah: {
+      username: 'organizer.jeddah',
+      password: 'organizer123',
+      centerEn: 'Jeddah Coastal Vocational Center',
+      centerAr: 'مركز جدة الساحلي المهني',
+      flag: '🇸🇦',
+      cityEn: 'Jeddah (KSA)',
+      cityAr: 'جدة (السعودية)',
+      userDesc: 'Organizer Name (Jeddah Center)',
+    },
+    dubai: {
+      username: 'organizer.dubai',
+      password: 'organizer123',
+      centerEn: 'Dubai Skill Excellence Campus',
+      centerAr: 'مجمع دبي للتميز المهني والتقني',
+      flag: '🇦🇪',
+      cityEn: 'Dubai (UAE)',
+      cityAr: 'دبي (الإمارات)',
+      userDesc: 'Organizer Name (Dubai Campus)',
+    },
+    dhaka: {
+      username: 'organizer.dhaka',
+      password: 'organizer123',
+      centerEn: 'Dhaka National Skill Testing Center',
+      centerAr: 'مركز دكا الوطني لاختبار المهارات',
+      flag: '🇧🇩',
+      cityEn: 'Dhaka (BD)',
+      cityAr: 'دكا (بنغلاديش)',
+      userDesc: 'Organizer Name (Dhaka Center)',
+    },
+  };
+
+  const cbtSupportCenterMap = {
+    riyadh: {
+      username: 'cbtsupport01',
+      password: 'cbt123',
+      centerEn: 'Riyadh Central Technical Hub',
+      centerAr: 'مركز الرياض الرئيسي',
+      flag: '🇸🇦',
+      cityEn: 'Riyadh (KSA)',
+      cityAr: 'الرياض (السعودية)',
+      userDesc: 'CBT Test Support (Riyadh Hub)',
+    },
+    jeddah: {
+      username: 'cbt.jeddah',
+      password: 'cbt123',
+      centerEn: 'Jeddah Coastal Vocational Center',
+      centerAr: 'مركز جدة الساحلي المهني',
+      flag: '🇸🇦',
+      cityEn: 'Jeddah (KSA)',
+      cityAr: 'جدة (السعودية)',
+      userDesc: 'CBT Test Support (Jeddah Center)',
+    },
+    dubai: {
+      username: 'cbt.dubai',
+      password: 'cbt123',
+      centerEn: 'Dubai Skill Excellence Campus',
+      centerAr: 'مجمع دبي للتميز المهني والتقني',
+      flag: '🇦🇪',
+      cityEn: 'Dubai (UAE)',
+      cityAr: 'دبي (الإمارات)',
+      userDesc: 'CBT Test Support (Dubai Campus)',
+    },
+    dhaka: {
+      username: 'cbt.dhaka',
+      password: 'cbt123',
+      centerEn: 'Dhaka National Skill Testing Center',
+      centerAr: 'مركز دكا الوطني لاختبار المهارات',
+      flag: '🇧🇩',
+      cityEn: 'Dhaka (BD)',
+      cityAr: 'دكا (بنغلاديش)',
+      userDesc: 'CBT Test Support (Dhaka Center)',
+    },
+  };
 
   const demoAccounts: DemoAccount[] = [
     // Bangladesh (Dhaka Hub)
@@ -63,6 +151,24 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
       region: 'BD',
     },
     {
+      role: 'ORGANIZER',
+      label: `${t.roles.ORGANIZER} (Organizer Name - Dhaka)`,
+      email: 'organizer.dhaka@skillassess360.com',
+      usernameHint: 'organizer.dhaka',
+      password: 'organizer123',
+      description: 'Center-scoped candidate enrollment and photo verification at Dhaka Center',
+      region: 'BD',
+    },
+    {
+      role: 'CBT_TEST_SUPPORT',
+      label: `${t.roles.CBT_TEST_SUPPORT} (Dhaka Center)`,
+      email: 'cbt.dhaka@skillassess360.com',
+      usernameHint: 'cbt.dhaka',
+      password: 'cbt123',
+      description: 'Manage candidates ready for CBT examination with mandatory camera photo capture at Dhaka Center',
+      region: 'BD',
+    },
+    {
       role: 'COUNTRY_ACCOUNT',
       label: `${t.roles.COUNTRY_ACCOUNT} (Bangladesh - Rahim)`,
       email: 'country.bd@skillassess360.com',
@@ -71,7 +177,7 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
       description: 'Oversees accreditation compliance and testing centers across Bangladesh',
       region: 'BD',
     },
-    // Saudi Arabia (Riyadh Hub)
+    // Saudi Arabia (Riyadh & Jeddah Hubs)
     {
       role: 'CENTER_ADMIN',
       label: `${t.roles.CENTER_ADMIN} (Riyadh Hub - Dr. Khalid)`,
@@ -100,6 +206,42 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
       region: 'SA',
     },
     {
+      role: 'ORGANIZER',
+      label: `${t.roles.ORGANIZER} (Organizer Name - Riyadh Hub)`,
+      email: 'organizer@skillassess360.com',
+      usernameHint: 'organizer01',
+      password: 'organizer123',
+      description: 'Review pending enrollments, capture candidate photo & confirm enrollment at Riyadh Hub',
+      region: 'SA',
+    },
+    {
+      role: 'ORGANIZER',
+      label: `${t.roles.ORGANIZER} (Organizer Name - Jeddah Center)`,
+      email: 'organizer.jeddah@skillassess360.com',
+      usernameHint: 'organizer.jeddah',
+      password: 'organizer123',
+      description: 'Review pending enrollments, capture candidate photo & confirm enrollment at Jeddah Center',
+      region: 'SA',
+    },
+    {
+      role: 'CBT_TEST_SUPPORT',
+      label: `${t.roles.CBT_TEST_SUPPORT} (Riyadh Hub)`,
+      email: 'cbt.support@skillassess360.com',
+      usernameHint: 'cbtsupport01',
+      password: 'cbt123',
+      description: 'Manage candidates ready for CBT examination with mandatory camera photo capture at Riyadh Hub',
+      region: 'SA',
+    },
+    {
+      role: 'CBT_TEST_SUPPORT',
+      label: `${t.roles.CBT_TEST_SUPPORT} (Jeddah Center)`,
+      email: 'cbt.jeddah@skillassess360.com',
+      usernameHint: 'cbt.jeddah',
+      password: 'cbt123',
+      description: 'Manage candidates ready for CBT examination with mandatory camera photo capture at Jeddah Center',
+      region: 'SA',
+    },
+    {
       role: 'COUNTRY_ACCOUNT',
       label: `${t.roles.COUNTRY_ACCOUNT} (Saudi Arabia - Fahad)`,
       email: 'country.sa@skillassess360.com',
@@ -125,6 +267,24 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
       usernameHint: 'assessor.rashid',
       password: 'assessor123',
       description: 'Conducts technical evaluations and scoring at Dubai Facility',
+      region: 'AE',
+    },
+    {
+      role: 'ORGANIZER',
+      label: `${t.roles.ORGANIZER} (Organizer Name - Dubai Campus)`,
+      email: 'organizer.dubai@skillassess360.com',
+      usernameHint: 'organizer.dubai',
+      password: 'organizer123',
+      description: 'Review pending enrollments, capture candidate photo & confirm enrollment at Dubai Campus',
+      region: 'AE',
+    },
+    {
+      role: 'CBT_TEST_SUPPORT',
+      label: `${t.roles.CBT_TEST_SUPPORT} (Dubai Campus)`,
+      email: 'cbt.dubai@skillassess360.com',
+      usernameHint: 'cbt.dubai',
+      password: 'cbt123',
+      description: 'Manage candidates ready for CBT examination with mandatory camera photo capture at Dubai Campus',
       region: 'AE',
     },
     // Global Governance
@@ -341,6 +501,162 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
             <p className="text-xs text-stone-500 mb-3">
               {t.auth.demoAccountsSubtitle}
             </p>
+
+            {/* Prominent Organizer Name Role Credentials Card (Center-Scoped) */}
+            <div className="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-[#FAF8F5] via-[#FFF8F0] to-[#F8ECEE] border-2 border-[#C9A24D]/60 shadow-xs">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-[#7A2E3A]">
+                    {language === 'ar' ? 'بيانات حساب دور المنسق (Center-Wise Organizer)' : 'Center-Wise Organizer Role Credentials'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#C9A24D]/20 text-[#84631B] border border-[#C9A24D]/40">
+                  Center-Scoped
+                </span>
+              </div>
+
+              {/* Center Switcher Buttons */}
+              <div className="grid grid-cols-4 gap-1 p-1 bg-white/80 rounded-lg border border-[#E8D9D2] mb-2 text-[10px] font-semibold">
+                {(['riyadh', 'jeddah', 'dubai', 'dhaka'] as const).map(cKey => (
+                  <button
+                    key={cKey}
+                    type="button"
+                    onClick={() => setSelectedOrganizerCenter(cKey)}
+                    className={`py-1 px-0.5 rounded text-center transition-all truncate ${
+                      selectedOrganizerCenter === cKey
+                        ? 'bg-[#7A2E3A] text-white font-bold shadow-xs'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                    }`}
+                  >
+                    <span>{organizerCenterMap[cKey].flag} {organizerCenterMap[cKey].cityEn.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Active Center Info */}
+              <div className="mb-2 px-2 py-1 bg-amber-50/80 border border-amber-200/60 rounded text-[10px] text-amber-900 flex items-center justify-between">
+                <span className="font-semibold truncate">
+                  📍 {language === 'ar' ? organizerCenterMap[selectedOrganizerCenter].centerAr : organizerCenterMap[selectedOrganizerCenter].centerEn}
+                </span>
+                <span className="font-mono text-[9px] text-stone-500 shrink-0 ms-1">
+                  ({organizerCenterMap[selectedOrganizerCenter].cityEn})
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-white p-2 rounded-lg border border-[#E8D9D2]">
+                <div>
+                  <span className="text-[#806F6F] block text-[10px]">Username:</span>
+                  <span className="font-bold text-[#2C2623] select-all">
+                    {organizerCenterMap[selectedOrganizerCenter].username}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#806F6F] block text-[10px]">Password:</span>
+                  <span className="font-bold text-[#2C2623] select-all">
+                    {organizerCenterMap[selectedOrganizerCenter].password}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const targetOrg = organizerCenterMap[selectedOrganizerCenter];
+                  setEmail(targetOrg.username);
+                  setPassword(targetOrg.password);
+                  login(targetOrg.username, targetOrg.password);
+                  showToast(`Logged in as ${targetOrg.userDesc}`, 'success');
+                  onNavigate('/dashboard');
+                }}
+                className="mt-2 w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-[#7A2E3A] hover:bg-[#682430] text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <span>
+                  {language === 'ar' 
+                    ? `تسجيل الدخول كـ ${organizerCenterMap[selectedOrganizerCenter].userDesc}` 
+                    : `Login as ${organizerCenterMap[selectedOrganizerCenter].userDesc} (1-Click)`}
+                </span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Prominent CBT Test Support Role Credentials Card (Center-Wise) */}
+            <div className="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-[#F0FDF4] via-[#F5F3FF] to-[#FAF5FF] border-2 border-indigo-300/80 shadow-xs">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                  <span className="text-xs font-bold text-indigo-900">
+                    {language === 'ar' ? 'بيانات حساب دعم اختبار CBT (Center-Wise CBT Test Support)' : 'Center-Wise CBT Test Support Role Credentials'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">
+                  Center-Scoped
+                </span>
+              </div>
+
+              {/* Center Switcher Buttons */}
+              <div className="grid grid-cols-4 gap-1 p-1 bg-white/80 rounded-lg border border-indigo-100 mb-2 text-[10px] font-semibold">
+                {(['riyadh', 'jeddah', 'dubai', 'dhaka'] as const).map(cKey => (
+                  <button
+                    key={cKey}
+                    type="button"
+                    onClick={() => setSelectedCbtCenter(cKey)}
+                    className={`py-1 px-0.5 rounded text-center transition-all truncate ${
+                      selectedCbtCenter === cKey
+                        ? 'bg-indigo-800 text-white font-bold shadow-xs'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                    }`}
+                  >
+                    <span>{cbtSupportCenterMap[cKey].flag} {cbtSupportCenterMap[cKey].cityEn.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Active Center Info */}
+              <div className="mb-2 px-2 py-1 bg-indigo-50/80 border border-indigo-100 rounded text-[10px] text-indigo-900 flex items-center justify-between">
+                <span className="font-semibold truncate">
+                  📍 {language === 'ar' ? cbtSupportCenterMap[selectedCbtCenter].centerAr : cbtSupportCenterMap[selectedCbtCenter].centerEn}
+                </span>
+                <span className="font-mono text-[9px] text-stone-500 shrink-0 ms-1">
+                  ({cbtSupportCenterMap[selectedCbtCenter].cityEn})
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-white p-2 rounded-lg border border-indigo-100">
+                <div>
+                  <span className="text-stone-500 block text-[10px]">Username:</span>
+                  <span className="font-bold text-indigo-950 select-all">
+                    {cbtSupportCenterMap[selectedCbtCenter].username}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px]">Password:</span>
+                  <span className="font-bold text-indigo-950 select-all">
+                    {cbtSupportCenterMap[selectedCbtCenter].password}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const targetCbt = cbtSupportCenterMap[selectedCbtCenter];
+                  setEmail(targetCbt.username);
+                  setPassword(targetCbt.password);
+                  login(targetCbt.username, targetCbt.password);
+                  showToast(`Logged in as ${targetCbt.userDesc}`, 'success');
+                  onNavigate('/cbt-exam-pending');
+                }}
+                className="mt-2 w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-indigo-800 hover:bg-indigo-900 text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <span>
+                  {language === 'ar' 
+                    ? `تسجيل الدخول كـ ${cbtSupportCenterMap[selectedCbtCenter].userDesc}` 
+                    : `Login as ${cbtSupportCenterMap[selectedCbtCenter].userDesc} (1-Click)`}
+                </span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {/* Regional Hub Selector Tabs */}
             <div className="grid grid-cols-4 gap-1 p-1 bg-stone-100/80 rounded-lg mb-3 text-[11px] font-medium text-stone-600">

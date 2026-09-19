@@ -71,9 +71,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (u.username && u.username.trim().toLowerCase() === cleanId) ||
       (cleanId === 'dhaka.admin' && (u.username === 'admin.dhaka' || u.email === 'dhaka.admin@skillassess360.com')) ||
       (cleanId === 'kamal.assessor' && (u.username === 'assessor.kamal' || u.email === 'kamal.assessor@skillassess360.com')) ||
-      (cleanId === 'anowar.staff' && (u.username === 'staff.anowar' || u.email === 'anowar.staff@skillassess360.com')) ||
-      (cleanId === 'assessor01' && (u.role === 'ASSESSOR' || u.id === 'usr-4')) ||
-      (cleanId === 'support01' && (u.role === 'SUPPORT_STAFF' || u.id === 'usr-5'))
+      (cleanId === 'assessor01' && (u.username === 'assessor.lead' || u.id === 'usr-4')) ||
+      (cleanId === 'support01' && (u.username === 'staff.maryam' || u.id === 'usr-5')) ||
+      (cleanId === 'organizer01' && (u.username === 'organizer01' || u.id === 'usr-org-1')) ||
+      (cleanId === 'organizer' && (u.username === 'organizer01' || u.id === 'usr-org-1')) ||
+      (cleanId === 'organizer.jeddah' && (u.username === 'organizer.jeddah' || u.id === 'usr-org-2')) ||
+      (cleanId === 'organizer.dubai' && (u.username === 'organizer.dubai' || u.id === 'usr-org-3')) ||
+      (cleanId === 'organizer.dhaka' && (u.username === 'organizer.dhaka' || u.id === 'usr-org-4')) ||
+      (cleanId === 'cbtsupport01' && (u.username === 'cbtsupport01' || u.id === 'usr-cbt-1')) ||
+      (cleanId === 'cbt.riyadh' && (u.username === 'cbtsupport01' || u.id === 'usr-cbt-1')) ||
+      (cleanId === 'cbt.jeddah' && (u.username === 'cbt.jeddah' || u.id === 'usr-cbt-2')) ||
+      (cleanId === 'cbt.dubai' && (u.username === 'cbt.dubai' || u.id === 'usr-cbt-3')) ||
+      (cleanId === 'cbt.dhaka' && (u.username === 'cbt.dhaka' || u.id === 'usr-cbt-4'))
     );
 
     if (!foundUser) {
@@ -124,13 +133,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'staff.mona': 'support123',
       'staff.hessa': 'support123',
       'staff.fatima': 'support123',
+      'organizer01': 'organizer123',
+      'organizer': 'organizer123',
+      'organizer.jeddah': 'organizer123',
+      'organizer.dubai': 'organizer123',
+      'organizer.dhaka': 'organizer123',
+      'cbtsupport01': 'cbt123',
+      'cbt.riyadh': 'cbt123',
+      'cbt.jeddah': 'cbt123',
+      'cbt.dubai': 'cbt123',
+      'cbt.dhaka': 'cbt123',
     };
 
     const expectedPass = demoPasswordMap[foundUser.username || ''] || 
       (foundUser.role === 'SUPER_ADMIN' ? 'admin123' :
        foundUser.role === 'COUNTRY_ACCOUNT' ? 'country123' :
        foundUser.role === 'CENTER_ADMIN' ? 'center123' :
-       foundUser.role === 'ASSESSOR' ? 'assessor123' : 'support123');
+       foundUser.role === 'ASSESSOR' ? 'assessor123' :
+       foundUser.role === 'ORGANIZER' ? 'organizer123' :
+       foundUser.role === 'CBT_TEST_SUPPORT' ? 'cbt123' : 'support123');
 
     if (cleanPass && cleanPass !== expectedPass && cleanPass !== 'admin123') {
       AuditService.log('LOGIN', 'AUTH', `Incorrect password entered for account ${foundUser.email}`, foundUser.id, 'FAILURE');
@@ -161,12 +182,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchRole = (role: Role) => {
     const users = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
-    const matchingUser = users.find(u => u.role === role && u.status === 'ACTIVE');
+    // If the current user is assigned to a specific center, prioritize matching within the same center
+    const matchingUser = 
+      (user?.centerId ? users.find(u => u.role === role && u.centerId === user.centerId && u.status === 'ACTIVE') : null) ||
+      users.find(u => u.role === role && u.status === 'ACTIVE');
     if (matchingUser) {
       setUser(matchingUser);
       StorageService.set(STORAGE_KEYS.AUTH, matchingUser);
       AuditService.log('LOGIN', 'AUTH', `Switched active session to profile: ${matchingUser.name} (${role})`);
-      showToast(`Switched active profile to ${role.replace('_', ' ')}`, 'success');
+      showToast(`Switched active profile to ${role.replace('_', ' ')} (${matchingUser.name})`, 'success');
     } else {
       showToast(`No active demo account found for role ${role}`, 'warning');
     }

@@ -28,6 +28,7 @@ import { ConfigurationPage } from './pages/Configuration';
 import { ComplaintsPage } from './pages/Complaints';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { SystemNotificationsPage } from './pages/SystemNotificationsPage';
+import { EvaluationSheetRegister } from './pages/EvaluationSheetRegister';
 
 // Phase 03 Center Admin Pages
 import { ReservationManagementPage } from './pages/ReservationManagement';
@@ -125,15 +126,78 @@ const RouterContent: React.FC = () => {
       case '/candidates':
       case '/support/candidates':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="entry" />
+          </ProtectedRoute>
+        );
+
+      case '/enrollment-pending':
+      case '/support/enrollment-pending':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER']} onNavigate={navigate}>
+            <CandidatesPage onNavigate={navigate} mode="enrollment-pending" />
+          </ProtectedRoute>
+        );
+
+      case '/cbt-exam-pending':
+      case '/cbt/pending':
+      case '/support/cbt-exam-pending':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
+            <CandidatesPage onNavigate={navigate} mode="cbt-pending" />
+          </ProtectedRoute>
+        );
+
+      case '/cbt-confirmed':
+      case '/cbt-exam-confirmed':
+      case '/cbt/confirmed':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
+            <CandidatesPage onNavigate={navigate} mode="cbt-confirmed" />
+          </ProtectedRoute>
+        );
+
+      case '/practical-pending':
+      case '/practical/pending':
+      case '/assessor/practical-pending':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'ASSESSOR']} onNavigate={navigate}>
+            <CandidatesPage onNavigate={navigate} mode="practical-pending" />
+          </ProtectedRoute>
+        );
+
+      case '/practical-confirmed':
+      case '/practical/confirmed':
+      case '/assessor/practical-confirmed':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'ASSESSOR']} onNavigate={navigate}>
+            <CandidatesPage onNavigate={navigate} mode="practical-confirmed" />
+          </ProtectedRoute>
+        );
+
+      case '/evaluation-sheet-register':
+      case '/evaluation-sheets':
+      case '/assessor/evaluation-sheet-register':
+      case '/assessor/evaluation-sheets':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'ASSESSOR']} onNavigate={navigate}>
+            <EvaluationSheetRegister onNavigate={navigate} />
+          </ProtectedRoute>
+        );
+
+      case '/enroll-verify':
+      case '/support/enroll-verify':
+      case '/enrollment-verify':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER']} onNavigate={navigate}>
+            <CandidatesPage onNavigate={navigate} mode="enroll-verify" />
           </ProtectedRoute>
         );
 
       case '/candidate-exit-list':
       case '/support/candidate-exit-list':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="exit" />
           </ProtectedRoute>
         );
@@ -157,7 +221,7 @@ const RouterContent: React.FC = () => {
       case '/photos':
       case '/support/photos':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
             <CandidatePhotosPage onNavigate={navigate} />
           </ProtectedRoute>
         );
@@ -180,7 +244,7 @@ const RouterContent: React.FC = () => {
       case '/live-activity':
       case '/support/assessment-support':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
             <AssessmentMonitoringPage onNavigate={navigate} />
           </ProtectedRoute>
         );
@@ -195,7 +259,7 @@ const RouterContent: React.FC = () => {
       case '/batches':
       case '/support/batches':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
             <BatchesPage onNavigate={navigate} />
           </ProtectedRoute>
         );
@@ -374,7 +438,7 @@ const RouterContent: React.FC = () => {
 
       case '/support/notifications':
         return (
-          <ProtectedRoute allowedRoles={['SUPPORT_STAFF', 'CENTER_ADMIN', 'SUPER_ADMIN']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT', 'CENTER_ADMIN', 'SUPER_ADMIN']} onNavigate={navigate}>
             <SupportStaffNotifications onNavigate={navigate} />
           </ProtectedRoute>
         );

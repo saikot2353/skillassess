@@ -22,7 +22,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
     case 'RESOLVED':
     case 'NORMAL':
     case 'ENROLLED':
+    case 'ENROLLMENT_VERIFY':
+    case 'CBT_EXAM_CONFIRMED':
+    case 'CBT_CONFIRMED':
       variant = 'success';
+      if (normalized === 'ENROLLMENT_VERIFY') label = 'Enrollment Verify';
+      if (normalized === 'CBT_EXAM_CONFIRMED' || normalized === 'CBT_CONFIRMED') label = 'CBT Exam Confirmed';
       break;
 
     case 'PENDING':
@@ -32,7 +37,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
     case 'ACTION_REQUIRED':
     case 'REVIEW_REQUIRED':
     case 'VARIANCE_DETECTED':
+    case 'CBT_EXAM_PENDING':
+    case 'CBT_PENDING':
       variant = 'warning';
+      if (normalized === 'CBT_EXAM_PENDING' || normalized === 'CBT_PENDING') label = 'CBT Exam Pending';
       break;
 
     case 'IN_PROGRESS':

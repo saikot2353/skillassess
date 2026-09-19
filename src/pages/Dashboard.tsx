@@ -991,8 +991,8 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
     );
   }
 
-  // SUPPORT STAFF VIEW - Center-Scoped Operational Support Dashboard
-  if (user?.role === 'SUPPORT_STAFF') {
+  // SUPPORT STAFF / ORGANIZER / CBT TEST SUPPORT VIEW - Center-Scoped Operational Support Dashboard
+  if (user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER' || user?.role === 'CBT_TEST_SUPPORT') {
     const userCenterId = user.centerId || 'ctr-sa-1';
     const currentCenter = centers.find(c => c.id === userCenterId) || {
       id: userCenterId,
@@ -1009,11 +1009,25 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
     const centerBatches = batches.filter(b => b.centerId === userCenterId);
     const centerLiveActivities = liveActivities.filter(a => !a.centerId || a.centerId === userCenterId);
     const centerNotifications = StorageService.get<Notification[]>(STORAGE_KEYS.NOTIFICATIONS, []).filter(
-      n => !n.targetRole || n.targetRole === 'ALL' || n.targetRole === 'SUPPORT_STAFF'
+      n => !n.targetRole || n.targetRole === 'ALL' || n.targetRole === 'SUPPORT_STAFF' || n.targetRole === 'ORGANIZER' || n.targetRole === 'CBT_TEST_SUPPORT'
     );
 
     // Operational KPI calculations derived directly from real data
     const totalCandidatesCount = centerCandidates.length;
+    const pendingEnrollmentCount = centerCandidates.filter(c => {
+      const isEntryVerified = c.supportStaffVerificationStatus === 'CONFIRMED' || c.passportMatchConfirmed === true;
+      const alreadyEnrolled = c.enrollmentStatus === 'ENROLLED' || c.status === 'ENROLLED' || c.enrollmentStatus === 'ENROLLMENT_VERIFY' || c.status === 'ENROLLMENT_VERIFY';
+      return isEntryVerified && !alreadyEnrolled;
+    }).length;
+    const enrollVerifyCount = centerCandidates.filter(c => 
+      c.enrollmentStatus === 'ENROLLMENT_VERIFY' || c.status === 'ENROLLMENT_VERIFY' || c.enrollmentStatus === 'ENROLLED' || c.status === 'ENROLLED'
+    ).length;
+    const cbtPendingCount = centerCandidates.filter(c => {
+      const isEnrolled = c.enrollmentStatus === 'ENROLLED' || c.enrollmentStatus === 'ENROLLMENT_VERIFY' || c.status === 'ENROLLED' || c.status === 'ENROLLMENT_VERIFY' || !!c.enrolledAt;
+      const isCbtPending = (!c.cbtStatus || c.cbtStatus === 'NOT_STARTED' || c.cbtStatus === 'PENDING') && c.cbtStatus !== 'CONFIRMED' && c.cbtStatus !== 'COMPLETED';
+      return isEnrolled && isCbtPending;
+    }).length;
+    const cbtConfirmedCount = centerCandidates.filter(c => c.cbtStatus === 'CONFIRMED' || c.status === 'CBT_EXAM_CONFIRMED').length;
     const verifiedCandidatesCount = centerCandidates.filter(c => 
       c.enrollmentStatus === 'ENROLLED' || c.status === 'VERIFIED' || c.status === 'ENROLLED' || c.status === 'IN_PROGRESS' || c.status === 'COMPLETED'
     ).length;
@@ -1031,6 +1045,42 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
         badge: language === 'ar' ? 'مسجلون' : 'Active Cohort',
         icon: Users2,
         link: '/candidates',
+        color: 'maroon'
+      },
+      {
+        id: 'cbtPending',
+        label: language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending',
+        value: cbtPendingCount,
+        badge: language === 'ar' ? 'جاهز للاختبار' : 'Ready for CBT',
+        icon: CheckSquare,
+        link: '/cbt-exam-pending',
+        color: 'maroon'
+      },
+      {
+        id: 'cbtConfirmed',
+        label: language === 'ar' ? 'مؤكد اختبار CBT' : 'CBT Confirmed',
+        value: cbtConfirmedCount,
+        badge: language === 'ar' ? 'مصرح' : 'Authorized',
+        icon: CheckCircle2,
+        link: '/cbt-exam-pending',
+        color: 'gold'
+      },
+      {
+        id: 'pendingEnrollment',
+        label: language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending',
+        value: pendingEnrollmentCount,
+        badge: language === 'ar' ? 'مؤكد الدخول' : 'Entry Verified',
+        icon: UserCheck,
+        link: '/enrollment-pending',
+        color: 'gold'
+      },
+      {
+        id: 'enrollVerify',
+        label: language === 'ar' ? 'التحقق من التسجيل' : 'Enroll Verify',
+        value: enrollVerifyCount,
+        badge: language === 'ar' ? 'معتمد' : 'Enrolled',
+        icon: ShieldCheck,
+        link: '/enroll-verify',
         color: 'maroon'
       },
       {
@@ -1112,7 +1162,9 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
               <p className="text-xs text-[#806F6F] mt-1 flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-[#3F3030]">{user.name}</span>
                 <span>•</span>
-                <span className="text-[#C9A24D] font-medium">{user.assignedFunction || 'Reception & Biometric Verification'}</span>
+                <span className="text-[#C9A24D] font-medium">
+                  {user.assignedFunction || (user.role === 'CBT_TEST_SUPPORT' ? (language === 'ar' ? 'دعم وتأكيد اختبار الحاسب CBT' : 'CBT Exam Authorization & Live Photo') : 'Reception & Biometric Verification')}
+                </span>
                 <span>•</span>
                 <span>{language === 'ar' ? 'نطاق الدعم التشغيلي للمركز' : 'Center Operational Support Scope'}</span>
               </p>
@@ -1128,8 +1180,27 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
             >
               {t.common.refresh}
             </Button>
+            {user.role === 'CBT_TEST_SUPPORT' ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => onNavigate('/cbt-exam-pending')}
+                leftIcon={<CheckSquare className="w-3.5 h-3.5" />}
+              >
+                {language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending'}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate('/enrollment-pending')}
+                leftIcon={<UserCheck className="w-3.5 h-3.5" />}
+              >
+                {language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending'}
+              </Button>
+            )}
             <Button
-              variant="primary"
+              variant={user.role === 'CBT_TEST_SUPPORT' ? 'outline' : 'primary'}
               size="sm"
               onClick={() => onNavigate('/candidates')}
               leftIcon={<Search className="w-3.5 h-3.5" />}
@@ -1144,9 +1215,13 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-[#C9A24D] shrink-0" />
             <span>
-              {language === 'ar'
-                ? 'مهام فريق الدعم: مساعدة المرشحين، التحقق من الجوازات والهوية، وتدقيق الصور البيومترية. التقييم والاعتماد ورصد الدرجات صلاحية حصرية للمقيمين المعتمدين.'
-                : 'Support Staff Mandate: Candidate identity verification, passport matching, biometric photo audit, and workshop flow assistance. Rating and evaluation authority belongs exclusively to certified Assessors.'}
+              {user.role === 'CBT_TEST_SUPPORT'
+                ? (language === 'ar'
+                    ? 'مهام دعم اختبار CBT: التحقق من جاهزية المرشحين المسجلين، التقاط صورة اختبار CBT الإلزامية بالكاميرا المباشرة، وتأكيد الإذن ببدء اختبار الحاسب الآلي للمركز.'
+                    : 'CBT Test Support Mandate: Verify enrolled candidate readiness, capture mandatory live camera CBT photo, and authorize candidates to start center CBT computer tests.')
+                : (language === 'ar'
+                    ? 'مهام فريق الدعم: مساعدة المرشحين، التحقق من الجوازات والهوية، وتدقيق الصور البيومترية. التقييم والاعتماد ورصد الدرجات صلاحية حصرية للمقيمين المعتمدين.'
+                    : 'Support Staff Mandate: Candidate identity verification, passport matching, biometric photo audit, and workshop flow assistance. Rating and evaluation authority belongs exclusively to certified Assessors.')}
             </span>
           </div>
           <span className="text-[10px] font-mono font-bold text-[#7A2E3A] uppercase tracking-wider shrink-0 bg-white px-2 py-0.5 rounded border border-[#E8D9D2]">
@@ -1188,6 +1263,20 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
 
         {/* Quick Operational Actions Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button
+            type="button"
+            onClick={() => onNavigate('/cbt-exam-pending')}
+            className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+          >
+            <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
+              <CheckSquare className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending'}</div>
+              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التقاط الصورة وتأكيد الاختبار' : 'Photo capture & authorization'}</div>
+            </div>
+          </button>
+
           <button
             type="button"
             onClick={() => onNavigate('/candidates')}

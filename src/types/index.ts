@@ -3,7 +3,9 @@ export type Role =
   | 'COUNTRY_ACCOUNT' 
   | 'CENTER_ADMIN' 
   | 'ASSESSOR' 
-  | 'SUPPORT_STAFF';
+  | 'SUPPORT_STAFF'
+  | 'ORGANIZER'
+  | 'CBT_TEST_SUPPORT';
 
 export type Language = 'en' | 'ar';
 
@@ -100,6 +102,8 @@ export type CandidateAssessmentStatus =
   | 'SCHEDULED' 
   | 'ASSIGNED'
   | 'ENROLLED'
+  | 'ENROLLMENT_VERIFY'
+  | 'CBT_EXAM_CONFIRMED'
   | 'BIOMETRICS_VERIFIED'
   | 'VERIFIED'
   | 'IN_ASSESSMENT'
@@ -127,13 +131,19 @@ export interface EvidenceItem {
 }
 
 export interface CandidatePhoto {
+  id?: string;
   candidateId: string;
   candidateName: string;
   passportNumber: string;
   photoUrl: string;
+  photoType?: 'PROFILE' | 'ENTRY_VERIFICATION' | 'ENROLLMENT' | 'EXIT' | string;
+  purpose?: string;
+  captureDate?: string;
+  captureTime?: string;
   capturedAt: string;
   capturedBy: string;
-  verified: boolean;
+  verified?: boolean;
+  stage?: '1ST_ENTRY_VERIFICATION' | 'ENROLLMENT_VERIFICATION' | string;
 }
 
 export interface PassportVerificationRecord {
@@ -206,13 +216,28 @@ export interface Candidate {
   batchId: string;
   scheduleId?: string;
   reservationId?: string;
-  enrollmentStatus?: 'NOT_ENROLLED' | 'ENROLLED' | 'REJECTED';
+  enrollmentStatus?: 'NOT_ENROLLED' | 'ENROLLED' | 'REJECTED' | 'ENROLLMENT_VERIFY' | string;
   photoUrl?: string;
-  cbtStatus?: 'NOT_STARTED' | 'VERIFIED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  enrollmentPhoto?: string;
+  enrollmentPhotos?: CandidatePhoto[];
+  cbtPhoto?: string;
+  cbtPhotoRecord?: CandidatePhoto;
+  cbtStatus?: 'NOT_STARTED' | 'PENDING' | 'VERIFIED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CONFIRMED' | string;
   cbtStartTime?: string;
   cbtEndTime?: string;
   cbtScore?: number;
-  practicalStatus?: 'NOT_STARTED' | 'TASK_ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED';
+  cbtConfirmationDate?: string;
+  cbtConfirmationTime?: string;
+  cbtConfirmedAt?: string;
+  cbtConfirmedBy?: string;
+  practicalStatus?: 'NOT_STARTED' | 'PENDING' | 'TASK_ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | string;
+  practicalPhoto1?: string;
+  practicalPhoto2?: string;
+  taskNumber?: number;
+  practicalConfirmationDate?: string;
+  practicalConfirmationTime?: string;
+  practicalConfirmedAt?: string;
+  practicalConfirmedBy?: string;
   assignedTaskId?: string;
   assignedTaskCode?: string;
   assignedTaskTitle?: string;
@@ -231,6 +256,7 @@ export interface Candidate {
   applicationNumber?: string;
   registeredAt: string;
   enrolledAt?: string;
+  enrolledBy?: string;
   preloadStatus?: 'PRELOADED' | 'NOT_PRELOADED';
   idCardStatus?: IDCardStatus;
   idCardNumber?: string;
@@ -252,7 +278,7 @@ export interface Candidate {
   exitRecord?: CandidateExitRecord;
 }
 
-export type TaskDifficulty = 'FOUNDATIONAL' | 'INTERMEDIATE' | 'ADVANCED';
+export type TaskDifficulty = 'FOUNDATIONAL' | 'INTERMEDIATE' | 'ADVANCED' | 'Hard' | 'Moderate' | 'Easy';
 
 export interface PracticalTask {
   id: string;
@@ -441,29 +467,112 @@ export interface EvaluationRubricSection {
   questions: EvaluationQuestion[];
 }
 
+export type EvaluationWorkflowStatus = 
+  | 'PDF_UPLOADED' 
+  | 'OCR_PROCESSING' 
+  | 'OCR_COMPLETED' 
+  | 'REVIEW_REQUIRED' 
+  | 'REVIEWED' 
+  | 'EVALUATION_CONFIRMED' 
+  | 'OCR_FAILED' 
+  | 'MANUAL_ENTRY';
+
+export interface OcrFieldConfidence {
+  value: any;
+  confidence: 'HIGH' | 'MEDIUM' | 'NEEDS_REVIEW';
+  score: number; // 0 to 100
+}
+
+export interface OcrConfidenceSummary {
+  overallScore: number;
+  overallRating: 'HIGH' | 'MEDIUM' | 'NEEDS_REVIEW';
+  fields: Record<string, 'HIGH' | 'MEDIUM' | 'NEEDS_REVIEW'>;
+}
+
+export interface OcrExtractedData {
+  evaluationNumber: string;
+  testCenterName?: string;
+  assessmentDate?: string;
+  occupationName?: string;
+  candidateName?: string;
+  ticketNumber?: string;
+  passportNumber?: string;
+  taskNumber?: number;
+  taskTitle?: string;
+  difficulty?: 'Hard' | 'Moderate' | 'Easy';
+  rubricRatings: Record<string, number>; // questionId -> rating (0-5)
+  overallRatings: Record<string, number>; // questionId -> rating (0-10)
+  assessorName?: string;
+  assessorId?: string;
+  candidateSignatureDetected?: boolean;
+  assessorSignatureDetected?: boolean;
+}
+
+export interface OcrValidationResult {
+  candidateMatched: boolean;
+  passportMatched: boolean;
+  assessorMatched: boolean;
+  centerMatched?: boolean;
+  evaluationNumberMatched?: boolean;
+  warnings: string[];
+  badges: Array<{
+    label: string;
+    status: 'SUCCESS' | 'WARNING' | 'INFO';
+    detail?: string;
+  }>;
+}
+
 export interface EvaluationSheet {
   id: string;
   candidateId: string;
+  evaluationNumber: string; // e.g. "EV-2026-00001"
+  passportNumber?: string;
+  candidateName?: string;
+  centerId?: string;
   assessmentId?: string;
   assessorId: string;
+  assessorName?: string;
   batchId?: string;
+  taskNumber?: number;
+  assignedTaskId?: string;
+  evaluationSheetType?: 'UPLOAD' | 'CAMERA_PHOTO';
   fileName: string;
   fileSize?: string;
   fileUrl: string;
   fileType: 'IMAGE' | 'PDF';
   uploadedAt: string;
+  uploadDate?: string;
+  uploadTime?: string;
+  createdBy?: string;
+  ocrStatus?: EvaluationWorkflowStatus;
+  ocrRawData?: string;
+  ocrExtractedData?: OcrExtractedData;
+  ocrConfidence?: OcrConfidenceSummary;
+  validationResults?: OcrValidationResult;
+  finalReviewedData?: Record<string, any>;
+  ocrProcessedAt?: string;
+  confirmedAt?: string;
+  lastUpdatedBy?: string;
 }
 
 export interface CandidateEvaluationRating {
   id: string;
   candidateId: string;
+  evaluationNumber?: string;
+  candidateName?: string;
+  passportNumber?: string;
   assessorId: string;
+  assessorName?: string;
+  assessorIdNumber?: string;
+  centerId?: string;
   assessmentId?: string;
   batchId?: string;
   taskId?: string;
+  taskNumber?: number;
   taskTitle?: string;
   difficulty: 'Easy' | 'Moderate' | 'Hard' | string;
-  ratings: Record<string, number>; // questionId -> score
+  ratings: Record<string, number>; // questionId -> score (0-5)
+  overallRatings?: Record<string, number>; // questionId -> score (0-10)
   sectionScores: Record<string, { score: number; maxScore: number; percentage: number }>;
   totalScore: number;
   totalMaxScore: number;
@@ -471,8 +580,15 @@ export interface CandidateEvaluationRating {
   evaluationSheetUrl?: string;
   evaluationSheetName?: string;
   evaluationSheetUploadedAt?: string;
+  evaluationSheetType?: 'UPLOAD' | 'CAMERA_PHOTO';
   assessorRemarks?: string;
+  acknowledged?: boolean;
+  signatureDate?: string;
   status: 'DRAFT' | 'SUBMITTED' | 'LOCKED';
+  ocrStatus?: EvaluationWorkflowStatus;
+  ocrConfidence?: number;
+  ocrExtractedData?: OcrExtractedData;
+  finalReviewedData?: Record<string, any>;
   submittedAt?: string;
   lockedAt?: string;
 }
@@ -501,6 +617,7 @@ export type AuditAction =
   | 'ASSIGN' 
   | 'APPROVE'
   | 'LOCK'
+  | 'OCR_PROCESS'
   | 'CREATE_COUNTRY'
   | 'UPDATE_COUNTRY'
   | 'CREATE_CENTER'
@@ -530,8 +647,10 @@ export type AuditAction =
   | 'UPDATE_COMPLAINT'
   | 'CANDIDATE_VERIFICATION'
   | 'CANDIDATE_EXIT'
+  | 'CBT_EXAM_CONFIRMATION'
   | 'START_PRACTICAL'
   | 'COMPLETE_PRACTICAL'
+  | 'PRACTICAL_CONFIRMATION'
   | 'UPLOAD_EVIDENCE'
   | 'UPLOAD_EVALUATION_SHEET'
   | 'SUBMIT_EVALUATION'

@@ -23,6 +23,7 @@ export const SchedulesPage: React.FC = () => {
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
+  const isCenterScoped = isCenterAdmin || user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
@@ -45,7 +46,7 @@ export const SchedulesPage: React.FC = () => {
 
   const loadData = () => {
     const allSchedules = StorageService.get<Schedule[]>(STORAGE_KEYS.SCHEDULES, []);
-    const filtered = isCenterAdmin 
+    const filtered = isCenterScoped 
       ? allSchedules.filter(s => s.centerId === userCenterId)
       : allSchedules;
     setSchedules(filtered);
@@ -54,7 +55,7 @@ export const SchedulesPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [userCenterId, isCenterAdmin]);
+  }, [userCenterId, isCenterScoped]);
 
   const handleOpenAdd = () => {
     setFormData({

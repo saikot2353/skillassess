@@ -29,13 +29,13 @@ export const AssessmentMonitoringPage: React.FC<AssessmentMonitoringPageProps> =
   const { user } = useAuth();
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
-  const isSupportStaff = user?.role === 'SUPPORT_STAFF';
+  const isSupportStaff = user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get('tab');
     if (t === 'live' || t === 'activities') return 'activities';
-    return t || (user?.role === 'SUPPORT_STAFF' ? 'activities' : 'pipeline');
+    return t || (isSupportStaff ? 'activities' : 'pipeline');
   });
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);

@@ -34,6 +34,7 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
+  const isCenterScoped = isCenterAdmin || user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
   const isAssessor = user?.role === 'ASSESSOR';
 
   const canOverride = hasPermission('result.override');
@@ -62,6 +63,7 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
     practicalScore: 0,
     reason: '',
   });
+  const [isSubmittingCorrection, setIsSubmittingCorrection] = useState(false);
   const [correctionError, setCorrectionError] = useState('');
 
   const loadData = () => {
@@ -71,7 +73,7 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
 
     if (isAssessor) {
       filtered = allResults.filter(r => r.assessorId === user?.id || r.assessorName === user?.name);
-    } else if (isCenterAdmin) {
+    } else if (isCenterScoped) {
       filtered = allResults.filter(r => r.centerId === userCenterId);
     } else if (isCountryAccount) {
       const countryCenterIds = new Set(allCenters.filter(c => c.countryId === userCountryId).map(c => c.id));
@@ -98,7 +100,7 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
       const found = allResults.find(r => r.id === idParam);
       if (found) setViewingResult(found);
     }
-  }, [userCenterId, userCountryId, isCenterAdmin, isCountryAccount, isAssessor]);
+  }, [userCenterId, userCountryId, isCenterScoped, isCountryAccount, isAssessor]);
 
   // Metrics
   const totalCount = results.length;

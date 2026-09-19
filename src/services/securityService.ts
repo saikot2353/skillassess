@@ -85,6 +85,20 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'complaint.view', 'complaint.submit',
     'report.view',
   ],
+  ORGANIZER: [
+    'candidate.view', 'candidate.enroll',
+    'schedule.view',
+    'assessment.view',
+    'idcard.view', 'idcard.request',
+    'complaint.view', 'complaint.submit',
+    'report.view',
+  ],
+  CBT_TEST_SUPPORT: [
+    'candidate.view',
+    'assessment.view',
+    'schedule.view',
+    'report.view',
+  ],
 };
 
 export interface IntegrityHealthReport {
@@ -143,8 +157,8 @@ export class SecurityService {
       return user.countryId === targetCountryId;
     }
 
-    // Center Admin, Assessor, Support Staff are scoped to their assigned center
-    if (['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF'].includes(user.role)) {
+    // Center Admin, Assessor, Support Staff, Organizer, CBT Test Support are scoped to their assigned center
+    if (['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT'].includes(user.role)) {
       if (!targetCenterId) return true;
       return user.centerId === targetCenterId;
     }
