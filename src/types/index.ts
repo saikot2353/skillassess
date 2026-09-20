@@ -25,6 +25,8 @@ export interface User {
   assignedAssessmentsCount?: number;
   assignedFunction?: string;
   occupation?: string;
+  password?: string;
+  tempPassword?: string;
 }
 
 export interface Country {

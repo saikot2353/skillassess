@@ -63,9 +63,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isAssessor = user?.role === 'ASSESSOR';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
-  const isSupportStaff = user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
+  const isSupportStaff = user?.role === 'SUPPORT_STAFF';
+  const isOrganizer = user?.role === 'ORGANIZER';
   const isCbtTestSupport = user?.role === 'CBT_TEST_SUPPORT';
-  const center = (isCenterAdmin || isSupportStaff || isCbtTestSupport) && user?.centerId
+  const center = (isCenterAdmin || isSupportStaff || isOrganizer || isCbtTestSupport) && user?.centerId
     ? StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []).find(c => c.id === user.centerId)
     : null;
 
@@ -353,10 +354,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'pra-pending', path: '/assessor/practical-pending', labelKey: 'practicalPending' },
         { id: 'pra-confirmed', path: '/assessor/practical-confirmed', labelKey: 'practicalConfirmed' },
         { id: 'pra-eval-register', path: '/assessor/evaluation-sheet-register', labelKey: 'evaluationSheetRegister' },
-        { id: 'pra-verify', path: '/assessor/candidate-verification', labelKey: 'candidateVerification' },
         { id: 'pra-task', path: '/assessor/practical-task', labelKey: 'practicalTask' },
-        { id: 'pra-evidence', path: '/assessor/evidence', labelKey: 'evidence' },
-        { id: 'pra-eval', path: '/assessor/evaluation', labelKey: 'evaluationRating' },
       ],
     },
     {
@@ -392,19 +390,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: UserCheck,
       subItems: [
         { id: 'can-list', path: '/candidates', labelKey: 'candidateList' },
-        { id: 'can-pending', path: '/enrollment-pending', labelKey: 'enrollmentPending' },
-        { id: 'can-cbt-pending', path: '/cbt-exam-pending', labelKey: 'cbtExamPending' },
-        { id: 'can-cbt-confirmed', path: '/cbt-confirmed', labelKey: 'cbtConfirmed' },
-        { id: 'can-verify', path: '/enroll-verify', labelKey: 'enrollVerify' },
         { id: 'can-exit-list', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
-        { id: 'can-photos', path: '/candidate-photos', labelKey: 'photos' },
       ],
     },
     {
-      id: 'batches',
-      labelKey: 'batchManagement',
-      path: '/batches',
-      icon: Layers,
+      id: 'assessment-support',
+      labelKey: 'assessmentSupport',
+      icon: ClipboardCheck,
+      subItems: [
+        { id: 'sup-activities', path: '/assessment-monitoring?tab=live', labelKey: 'todaysActivities' },
+        { id: 'sup-monitoring', path: '/assessment-monitoring?tab=pipeline', labelKey: 'assessmentMonitoring' },
+      ],
+    },
+    {
+      id: 'notifications',
+      labelKey: 'notifications',
+      path: '/support/notifications',
+      icon: Bell,
+    },
+    {
+      id: 'profile',
+      labelKey: 'profile',
+      path: '/profile',
+      icon: UserCircle,
+    },
+  ];
+
+  const organizerNavGroups: NavGroup[] = [
+    {
+      id: 'dashboard',
+      labelKey: 'dashboard',
+      path: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      id: 'candidates',
+      labelKey: 'candidates',
+      icon: UserCheck,
+      subItems: [
+        { id: 'can-pending', path: '/enrollment-pending', labelKey: 'enrollmentPending' },
+        { id: 'can-verify', path: '/enroll-verify', labelKey: 'enrollVerify' },
+      ],
     },
     {
       id: 'assessment-support',
@@ -449,23 +475,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: CheckCircle2,
     },
     {
-      id: 'candidates',
-      labelKey: 'candidates',
-      icon: UserCheck,
-      subItems: [
-        { id: 'cbt-can-pending', path: '/cbt-exam-pending', labelKey: 'cbtExamPending' },
-        { id: 'cbt-can-confirmed', path: '/cbt-confirmed', labelKey: 'cbtConfirmed' },
-        { id: 'cbt-can-list', path: '/candidates', labelKey: 'candidateList' },
-        { id: 'cbt-can-photos', path: '/candidate-photos', labelKey: 'photos' },
-      ],
-    },
-    {
-      id: 'batches',
-      labelKey: 'batchManagement',
-      path: '/batches',
-      icon: Layers,
-    },
-    {
       id: 'assessment-support',
       labelKey: 'assessmentSupport',
       icon: Activity,
@@ -492,9 +501,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? assessorNavGroups 
     : (isCbtTestSupport
         ? cbtTestSupportNavGroups
-        : (isSupportStaff
-            ? supportStaffNavGroups
-            : (isCenterAdmin ? centerAdminNavGroups : superAdminNavGroups)));
+        : (isOrganizer
+            ? organizerNavGroups
+            : (isSupportStaff
+                ? supportStaffNavGroups
+                : (isCenterAdmin ? centerAdminNavGroups : superAdminNavGroups))));
 
   // Auto-expand active group based on currentPath
   useEffect(() => {

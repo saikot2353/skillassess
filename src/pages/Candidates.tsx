@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Eye, Plus, Search, Filter, UserCheck, UserPlus, Save, User, Camera, 
   CheckCircle2, AlertTriangle, ScanBarcode, Clock,
-  Upload, ShieldCheck, CheckSquare, LogOut, Wrench
+  ShieldCheck, CheckSquare, LogOut, Wrench
 } from 'lucide-react';
 import { 
   Candidate, 
@@ -68,8 +68,9 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
   const isAssessor = user?.role === 'ASSESSOR';
   const isCbtTestSupport = user?.role === 'CBT_TEST_SUPPORT';
-  const isSupportStaff = user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
-  const isCenterScoped = isCenterAdmin || isSupportStaff || isCbtTestSupport || isAssessor;
+  const isSupportStaff = user?.role === 'SUPPORT_STAFF';
+  const isOrganizer = user?.role === 'ORGANIZER';
+  const isCenterScoped = isCenterAdmin || isSupportStaff || isOrganizer || isCbtTestSupport || isAssessor;
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
@@ -250,6 +251,16 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     setBatches(filteredBatches);
   };
 
+  // Reset table filters, search, and modals when navigating between modes
+  useEffect(() => {
+    setStatusFilter('ALL');
+    setSearchTerm('');
+    setCurrentPage(1);
+    setViewCandidate(null);
+    setVerificationPhoto(null);
+    loadData();
+  }, [mode]);
+
   useEffect(() => {
     loadData();
   }, [userCenterId, userCountryId, isCenterScoped, isCountryAccount, isExitMode, isEnrollmentPendingMode, isEnrollVerifyMode, isCbtPendingMode, isCbtConfirmedMode, isPracticalPendingMode, isPracticalConfirmedMode, user?.id, isAssessor]);
@@ -271,7 +282,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       } else if (isCbtConfirmedMode) {
         setVerificationPhoto(viewCandidate.cbtPhoto || null);
       } else if (isEnrollmentPendingMode) {
-        setVerificationPhoto(null);
+        setVerificationPhoto(viewCandidate.enrollmentPhoto || viewCandidate.passportVerificationPhoto || viewCandidate.photoUrl || null);
       } else if (isEnrollVerifyMode) {
         setVerificationPhoto(viewCandidate.enrollmentPhoto || viewCandidate.passportVerificationPhoto || null);
       } else {
@@ -356,12 +367,25 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
   const capturePhotoFromCamera = () => {
     const video = photoVideoRef.current;
     const canvas = photoCanvasRef.current || document.createElement('canvas');
-    canvas.width = (video && video.videoWidth > 0) ? video.videoWidth : 640;
-    canvas.height = (video && video.videoHeight > 0) ? video.videoHeight : 480;
+    // Constrain resolution to max 480x360 for storage safety while retaining crisp display
+    const maxWidth = 480;
+    const maxHeight = 360;
+    let width = (video && video.videoWidth > 0) ? video.videoWidth : 480;
+    let height = (video && video.videoHeight > 0) ? video.videoHeight : 360;
+    if (width > maxWidth) {
+      height = Math.round((height * maxWidth) / width);
+      width = maxWidth;
+    }
+    if (height > maxHeight) {
+      width = Math.round((width * maxHeight) / height);
+      height = maxHeight;
+    }
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       if (video && video.videoWidth > 0) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, width, height);
       } else {
         // Fallback / simulated snapshot when hardware camera stream is unavailable or blocked
         ctx.fillStyle = '#1e293b';
@@ -385,7 +409,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
         ctx.font = '14px monospace';
         ctx.fillText(new Date().toLocaleTimeString(), canvas.width / 2, canvas.height / 2 + 110);
       }
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
       if (activeCameraTarget === 'practical1') {
         setPracticalPhoto1(dataUrl);
         showToast('Practical Photo 1 captured successfully via camera!', 'success');
@@ -414,19 +438,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       return { valid: false, error: 'Task Number must be between 1 and 100.' };
     }
     return { valid: true, num };
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setVerificationPhoto(reader.result as string);
-        stopPhotoCamera();
-        showToast('Photo uploaded successfully!', 'info');
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   // --------------------------------------------------------------------------
@@ -691,13 +702,26 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     if (!viewCandidate) return;
 
     // 1. Check if already enrolled (Prevent duplicate enrollment)
-    if (viewCandidate.enrollmentStatus === 'ENROLLMENT_VERIFY' || viewCandidate.status === 'ENROLLMENT_VERIFY') {
+    if (
+      viewCandidate.enrollmentStatus === 'ENROLLMENT_VERIFY' ||
+      viewCandidate.status === 'ENROLLMENT_VERIFY' ||
+      viewCandidate.enrollmentStatus === 'ENROLLED' ||
+      viewCandidate.status === 'ENROLLED'
+    ) {
       showToast('Candidate has already been enrolled and verified.', 'info');
       return;
     }
 
-    // 2. Mandatory Candidate Photo Validation
-    if (!verificationPhoto) {
+    // 2. Validate eligibility: Entry verification must be confirmed
+    const isEntryConfirmed = viewCandidate.supportStaffVerificationStatus === 'CONFIRMED' || viewCandidate.passportMatchConfirmed === true;
+    if (!isEntryConfirmed) {
+      showToast('Candidate entry verification must be confirmed before enrollment.', 'error');
+      return;
+    }
+
+    // 3. Mandatory Candidate Photo Validation
+    const finalPhoto = verificationPhoto || viewCandidate.enrollmentPhoto || viewCandidate.passportVerificationPhoto || viewCandidate.photoUrl;
+    if (!finalPhoto) {
       showToast('Candidate photo is mandatory before confirming enrollment.', 'error');
       return;
     }
@@ -707,13 +731,13 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     const enrolledBy = user?.name || user?.username || 'Organizer Name';
     const nowIso = new Date().toISOString();
 
-    // 3. Create a separate, permanent photo record (Preserving previous verification photo & profile picture)
+    // 4. Create a separate, permanent photo record (Preserving previous verification photo & profile picture)
     const newPhotoRecord: CandidatePhoto = {
       id: `photo-${viewCandidate.id}-${Date.now()}`,
       candidateId: viewCandidate.id,
       candidateName: viewCandidate.fullNameEn,
       passportNumber: viewCandidate.passportNumber,
-      photoUrl: verificationPhoto,
+      photoUrl: finalPhoto,
       photoType: 'ENROLLMENT',
       purpose: 'Enrollment Verification Photo',
       captureDate: confirmationDate,
@@ -724,11 +748,11 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       stage: 'ENROLLMENT_VERIFICATION',
     };
 
-    // 4. Persist photo in dedicated candidate photos ledger collection
+    // 5. Persist photo in dedicated candidate photos ledger collection
     const existingAllPhotos = StorageService.get<CandidatePhoto[]>(STORAGE_KEYS.CANDIDATE_PHOTOS, []);
-    StorageService.set(STORAGE_KEYS.CANDIDATE_PHOTOS, [newPhotoRecord, ...existingAllPhotos]);
+    StorageService.set(STORAGE_KEYS.CANDIDATE_PHOTOS, [newPhotoRecord, ...existingAllPhotos.slice(0, 30)]);
 
-    // 5. Update Candidate in-place (Zero duplicate candidate rows created)
+    // 6. Update Candidate in-place (Zero duplicate candidate rows created)
     const existingEnrollmentPhotos = viewCandidate.enrollmentPhotos || [];
     const updatedCandidate: Candidate = {
       ...viewCandidate,
@@ -740,15 +764,23 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       passportVerificationPhoto: viewCandidate.passportVerificationPhoto,
       passportVerificationRecord: viewCandidate.passportVerificationRecord,
       // Separate enrollment photo and history attached
-      enrollmentPhoto: verificationPhoto,
+      enrollmentPhoto: finalPhoto,
       enrollmentPhotos: [...existingEnrollmentPhotos, newPhotoRecord],
       enrolledAt: nowIso,
       enrolledBy: enrolledBy,
     };
 
-    StorageService.updateItem(STORAGE_KEYS.CANDIDATES, updatedCandidate);
+    const saveSuccess = StorageService.updateItem(STORAGE_KEYS.CANDIDATES, updatedCandidate);
 
-    // 6. Log Audit Trail
+    if (!saveSuccess) {
+      showToast('Failed to persist candidate enrollment in storage. Please try again.', 'error');
+      return;
+    }
+
+    // Immediately update candidate state
+    setCandidates(prev => prev.map(c => c.id === updatedCandidate.id ? updatedCandidate : c));
+
+    // 7. Log Audit Trail
     AuditService.log(
       'ENROLL_CANDIDATE',
       'CANDIDATE',
@@ -757,10 +789,16 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       'SUCCESS'
     );
 
+    // 8. Show success message ONLY after successful save
     showToast(`Candidate ${viewCandidate.fullNameEn} successfully enrolled! Status: Enrollment Verify.`, 'success');
     setViewCandidate(null);
     setVerificationPhoto(null);
     loadData();
+
+    // 9. Automatically navigate to Enroll Verify
+    if (onNavigate) {
+      onNavigate('/enroll-verify');
+    }
   };
 
   // --------------------------------------------------------------------------
@@ -1058,7 +1096,9 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
           ? (statusFilter === 'CONFIRMED' ? (c.cbtStatus === 'CONFIRMED' || c.status === 'CBT_EXAM_CONFIRMED') : statusFilter === 'PENDING' ? (c.cbtStatus !== 'CONFIRMED' && c.status !== 'CBT_EXAM_CONFIRMED') : true)
           : isEnrollmentPendingMode
             ? (statusFilter === 'CONFIRMED' ? (c.supportStaffVerificationStatus === 'CONFIRMED' || c.passportMatchConfirmed === true) : statusFilter === 'PENDING' ? c.supportStaffVerificationStatus !== 'CONFIRMED' : true)
-            : (c.status === statusFilter || c.supportStaffVerificationStatus === statusFilter);
+            : isEnrollVerifyMode
+              ? (statusFilter === 'ENROLLMENT_VERIFY' ? (c.enrollmentStatus === 'ENROLLMENT_VERIFY' || c.status === 'ENROLLMENT_VERIFY' || c.enrollmentStatus === 'ENROLLED' || c.status === 'ENROLLED') : true)
+              : (c.status === statusFilter || c.supportStaffVerificationStatus === statusFilter);
 
     return matchesSearch && matchesStatus;
   });
@@ -1117,6 +1157,16 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     if (c.practicalStatus === 'COMPLETED' || c.practicalStatus === 'IN_PROGRESS') return true;
 
     return false;
+  };
+
+  const isCandidateCbtCompleted = (c: Candidate): boolean => {
+    return (
+      c.cbtStatus === 'CONFIRMED' ||
+      c.cbtStatus === 'COMPLETED' ||
+      c.status === 'CBT_EXAM_CONFIRMED' ||
+      Boolean(c.cbtConfirmationDate) ||
+      Boolean(c.cbtConfirmedAt)
+    );
   };
 
   const isCandidatePracticalCompleted = (c: Candidate): boolean => {
@@ -1692,6 +1742,34 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       },
     },
     {
+      key: 'cbtProcessStatus',
+      header: language === 'ar' ? 'اختبار CBT' : 'CBT',
+      className: 'text-center',
+      headerClassName: 'text-center',
+      render: c => {
+        const isDone = isCandidateCbtCompleted(c);
+        return (
+          <div className="flex flex-col items-center justify-center">
+            {isDone ? (
+              <span
+                className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold text-sm shadow-2xs"
+                title={language === 'ar' ? 'تم تأكيد اختبار CBT' : 'CBT Confirmed'}
+              >
+                <span className="font-sans text-sm leading-none select-none font-black text-emerald-700">✓</span>
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 text-rose-600 border border-rose-300 font-bold text-sm shadow-2xs"
+                title={language === 'ar' ? 'اختبار CBT غير مكتمل' : 'CBT Pending'}
+              >
+                <span className="font-sans text-sm leading-none select-none font-black text-rose-600">✕</span>
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'practicalProcessStatus',
       header: language === 'ar' ? 'التقييم العملي' : 'Practical Assessment',
       className: 'text-center',
@@ -1841,8 +1919,8 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     {
       key: 'enrollmentStatus',
       header: language === 'ar' ? 'حالة التسجيل' : 'Enrollment Status',
-      render: () => (
-        <StatusBadge status="ENROLLMENT_VERIFY" />
+      render: c => (
+        <StatusBadge status={(c.enrollmentStatus || c.status) as CandidateAssessmentStatus} />
       ),
     },
     {
@@ -1892,7 +1970,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
           type="button"
           onClick={() => {
             setViewCandidate(c);
-            setVerificationPhoto(null);
             AuditService.log('VIEW', 'CANDIDATE', `Candidate enroll-verified dossier viewed: ${c.fullNameEn} (${c.passportNumber})`, c.id);
           }}
           className="p-1.5 rounded text-[#7A2E3A] hover:bg-[#F8ECEE] font-semibold transition-colors inline-flex items-center gap-1 text-xs"
@@ -1994,7 +2071,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
           type="button"
           onClick={() => {
             setViewCandidate(c);
-            setVerificationPhoto(null);
             AuditService.log('VIEW', 'CANDIDATE', `Candidate enrollment dossier viewed: ${c.fullNameEn} (${c.passportNumber})`, c.id);
           }}
           className="p-1.5 rounded text-[#7A2E3A] hover:bg-[#F8ECEE] font-semibold transition-colors inline-flex items-center gap-1 text-xs"
@@ -2168,24 +2244,26 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
         actions={
           <div className="flex items-center gap-2">
             {(isCbtPendingMode || isCbtConfirmedMode || isPracticalPendingMode || isPracticalConfirmedMode) ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate?.(isAssessor ? '/assessor/assessments/assigned' : '/candidates')}
-                  leftIcon={<UserCheck className="w-4 h-4" />}
-                >
-                  {language === 'ar' ? 'قائمة المرشحين' : 'Candidate List'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate?.('/batches')}
-                  leftIcon={<Search className="w-4 h-4" />}
-                >
-                  {language === 'ar' ? 'الدفعات' : 'Batches'}
-                </Button>
-              </>
+              !isCbtTestSupport && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onNavigate?.(isAssessor ? '/assessor/assessments/assigned' : '/candidates')}
+                    leftIcon={<UserCheck className="w-4 h-4" />}
+                  >
+                    {language === 'ar' ? 'قائمة المرشحين' : 'Candidate List'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onNavigate?.('/batches')}
+                    leftIcon={<Search className="w-4 h-4" />}
+                  >
+                    {language === 'ar' ? 'الدفعات' : 'Batches'}
+                  </Button>
+                </>
+              )
             ) : isExitMode ? (
               <Button
                 variant="outline"
@@ -2205,14 +2283,16 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                 >
                   {language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending'}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate?.('/candidates')}
-                  leftIcon={<UserCheck className="w-4 h-4" />}
-                >
-                  {language === 'ar' ? 'قائمة المرشحين' : 'Candidate List'}
-                </Button>
+                {!isOrganizer && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onNavigate?.('/candidates')}
+                    leftIcon={<UserCheck className="w-4 h-4" />}
+                  >
+                    {language === 'ar' ? 'قائمة المرشحين' : 'Candidate List'}
+                  </Button>
+                )}
               </>
             ) : isEnrollmentPendingMode ? (
               <>
@@ -2224,41 +2304,49 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                 >
                   {language === 'ar' ? 'التحقق من التسجيل' : 'Enroll Verify'}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate?.('/candidates')}
-                  leftIcon={<UserCheck className="w-4 h-4" />}
-                >
-                  {language === 'ar' ? 'قائمة المرشحين' : 'Candidate List'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate?.('/candidate-exit-list')}
-                  leftIcon={<LogOut className="w-4 h-4" />}
-                >
-                  {language === 'ar' ? 'قائمة خروج المرشحين' : 'Candidate Exit List'}
-                </Button>
+                {!isOrganizer && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onNavigate?.('/candidates')}
+                      leftIcon={<UserCheck className="w-4 h-4" />}
+                    >
+                      {language === 'ar' ? 'قائمة المرشحين' : 'Candidate List'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onNavigate?.('/candidate-exit-list')}
+                      leftIcon={<LogOut className="w-4 h-4" />}
+                    >
+                      {language === 'ar' ? 'قائمة خروج المرشحين' : 'Candidate Exit List'}
+                    </Button>
+                  </>
+                )}
               </>
             ) : (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate?.('/enrollment-pending')}
-                  leftIcon={<UserCheck className="w-4 h-4" />}
-                >
-                  {language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate?.('/enroll-verify')}
-                  leftIcon={<ShieldCheck className="w-4 h-4" />}
-                >
-                  {language === 'ar' ? 'التحقق من التسجيل' : 'Enroll Verify'}
-                </Button>
+                {!isSupportStaff && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onNavigate?.('/enrollment-pending')}
+                      leftIcon={<UserCheck className="w-4 h-4" />}
+                    >
+                      {language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onNavigate?.('/enroll-verify')}
+                      leftIcon={<ShieldCheck className="w-4 h-4" />}
+                    >
+                      {language === 'ar' ? 'التحقق من التسجيل' : 'Enroll Verify'}
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -2269,14 +2357,16 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                 </Button>
               </>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate?.('/candidate-photos')}
-              leftIcon={<Camera className="w-4 h-4" />}
-            >
-              {language === 'ar' ? 'معرض الصور' : 'Photo Gallery'}
-            </Button>
+            {!isSupportStaff && !isOrganizer && !isCbtTestSupport && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate?.('/candidate-photos')}
+                leftIcon={<Camera className="w-4 h-4" />}
+              >
+                {language === 'ar' ? 'معرض الصور' : 'Photo Gallery'}
+              </Button>
+            )}
             {!isExitMode && !isEnrollmentPendingMode && !isCbtPendingMode && !isCbtConfirmedMode && !isPracticalPendingMode && !isPracticalConfirmedMode && isCenterAdmin && (
               <>
                 <Button
@@ -2785,7 +2875,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                 <Button
                   variant="primary"
                   size="sm"
-                  disabled={!verificationPhoto}
+                  disabled={!verificationPhoto && !viewCandidate.enrollmentPhoto && !viewCandidate.passportVerificationPhoto && !viewCandidate.photoUrl}
                   onClick={handleConfirmEnrollment}
                   leftIcon={<UserCheck className="w-3.5 h-3.5" />}
                 >
@@ -3228,7 +3318,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
             {isExitMode && (
               <div>
                 <ModalSectionTitle title={language === 'ar' ? 'مراحل التقييم والعمليات المنجزة' : 'Assessment Workflow Process Status'} />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* 1st Check-In */}
                   <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
                     isCandidateCheckInCompleted(viewCandidate) 
@@ -3273,6 +3363,28 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                     </span>
                   </div>
 
+                  {/* CBT */}
+                  <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
+                    isCandidateCbtCompleted(viewCandidate) 
+                      ? 'bg-emerald-50/70 border-emerald-200' 
+                      : 'bg-rose-50/70 border-rose-200'
+                  }`}>
+                    <div className="text-xs">
+                      <span className="text-[10px] text-stone-500 block uppercase font-semibold">Stage 3</span>
+                      <span className="font-bold text-[#2C2623] block">{language === 'ar' ? 'اختبار CBT' : 'CBT Examination'}</span>
+                      <span className="text-[10px] font-mono text-stone-600 block mt-0.5">
+                        {isCandidateCbtCompleted(viewCandidate)
+                          ? (viewCandidate.cbtConfirmationTime ? `Confirmed • ${viewCandidate.cbtConfirmationTime}` : viewCandidate.cbtStatus === 'COMPLETED' ? 'Completed' : 'Confirmed')
+                          : 'Not Completed'}
+                      </span>
+                    </div>
+                    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-black text-sm shadow-2xs ${
+                      isCandidateCbtCompleted(viewCandidate) ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                    }`}>
+                      {isCandidateCbtCompleted(viewCandidate) ? '✓' : '✕'}
+                    </span>
+                  </div>
+
                   {/* Practical Assessment */}
                   <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
                     isCandidatePracticalCompleted(viewCandidate) 
@@ -3280,7 +3392,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                       : 'bg-rose-50/70 border-rose-200'
                   }`}>
                     <div className="text-xs">
-                      <span className="text-[10px] text-stone-500 block uppercase font-semibold">Stage 3</span>
+                      <span className="text-[10px] text-stone-500 block uppercase font-semibold">Stage 4</span>
                       <span className="font-bold text-[#2C2623] block">Practical Assessment</span>
                       <span className="text-[10px] font-mono text-stone-600 block mt-0.5">
                         {isCandidatePracticalCompleted(viewCandidate)
@@ -3488,22 +3600,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                           <Camera className="w-3.5 h-3.5" />
                           <span>{language === 'ar' ? 'التقاط بكاميرا الويب' : 'Take Photo with Camera'}</span>
                         </button>
-
-                        {/* File Upload Fallback - STRICTLY REMOVED in Enrollment Pending Mode & CBT Pending Mode */}
-                        {!isEnrollmentPendingMode && !isCbtPendingMode && (
-                          <label className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#E8D9D2] bg-white text-[#806F6F] hover:bg-[#FAF8F5] cursor-pointer inline-flex items-center gap-1.5">
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>
-                              {language === 'ar' ? 'رفع صورة التحقق' : 'Upload Verification Photo'}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileUpload}
-                              className="hidden"
-                            />
-                          </label>
-                        )}
                       </div>
                     )}
 
@@ -3966,7 +4062,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
             {/* Completely Removed for Support Staff & Practical Pending          */}
             {/* 'Practical Task Lottery & CBT Telemetry' hidden for Practical Pending */}
             {/* ------------------------------------------------------------------ */}
-            {!isSupportStaff && !isPracticalPendingMode && !isPracticalConfirmedMode && (
+            {!isSupportStaff && !isCbtPendingMode && !isPracticalPendingMode && !isPracticalConfirmedMode && (
               <div>
                 <ModalSectionTitle title={language === 'ar' ? 'القرعة العملية واختبار CBT' : 'Practical Task Lottery & CBT Telemetry'} />
                 <div className="grid grid-cols-2 gap-3 p-3 bg-[#FAF8F5] rounded-lg border border-[#E8E4DC] text-xs">

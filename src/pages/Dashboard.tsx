@@ -1031,22 +1031,15 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
     const verifiedCandidatesCount = centerCandidates.filter(c => 
       c.enrollmentStatus === 'ENROLLED' || c.status === 'VERIFIED' || c.status === 'ENROLLED' || c.status === 'IN_PROGRESS' || c.status === 'COMPLETED'
     ).length;
-    const photosVerifiedCount = centerCandidates.filter(c => !!c.photoUrl).length;
-    const photoAttentionCount = centerCandidates.filter(c => !c.photoUrl || c.status === 'REGISTERED').length;
-    const activeBatchesCount = centerBatches.filter(b => b.status === 'ACTIVE' || b.status === 'IN_PROGRESS').length;
+    const exitCandidatesCount = centerCandidates.filter(c => c.supportStaffVerificationStatus === 'CONFIRMED' || c.passportMatchConfirmed === true).length;
     const inProgressAssessmentsCount = centerCandidates.filter(c => c.status === 'IN_PROGRESS' || c.status === 'IN_ASSESSMENT' || c.practicalStatus === 'IN_PROGRESS' || c.cbtStatus === 'IN_PROGRESS').length;
     const unreadNotificationsCount = centerNotifications.filter(n => !n.read).length;
 
-    const supportKpis = [
-      {
-        id: 'candidates',
-        label: language === 'ar' ? 'إجمالي المرشحين بالمركز' : "Today's Center Candidates",
-        value: totalCandidatesCount,
-        badge: language === 'ar' ? 'مسجلون' : 'Active Cohort',
-        icon: Users2,
-        link: '/candidates',
-        color: 'maroon'
-      },
+    const isSupportStaffUser = user.role === 'SUPPORT_STAFF';
+    const isOrganizerUser = user.role === 'ORGANIZER';
+    const isCbtTestSupportUser = user.role === 'CBT_TEST_SUPPORT';
+
+    const supportKpis = isCbtTestSupportUser ? [
       {
         id: 'cbtPending',
         label: language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending',
@@ -1062,9 +1055,28 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
         value: cbtConfirmedCount,
         badge: language === 'ar' ? 'مصرح' : 'Authorized',
         icon: CheckCircle2,
-        link: '/cbt-exam-pending',
+        link: '/cbt-confirmed',
         color: 'gold'
       },
+      {
+        id: 'inProgress',
+        label: language === 'ar' ? 'التقييمات الجارية ميدانياً' : 'Assessments In Progress',
+        value: inProgressAssessmentsCount,
+        badge: language === 'ar' ? 'مباشر' : 'Live Telemetry',
+        icon: Activity,
+        link: '/assessment-monitoring?tab=pipeline',
+        color: 'maroon'
+      },
+      {
+        id: 'notifications',
+        label: language === 'ar' ? 'مهام وتنبيهات الدعم' : 'Support Tasks & Alerts',
+        value: unreadNotificationsCount,
+        badge: language === 'ar' ? 'معلق' : 'Actionable',
+        icon: Bell,
+        link: '/support/notifications',
+        color: 'gold'
+      },
+    ] : isOrganizerUser ? [
       {
         id: 'pendingEnrollment',
         label: language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending',
@@ -1084,6 +1096,34 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
         color: 'maroon'
       },
       {
+        id: 'inProgress',
+        label: language === 'ar' ? 'التقييمات الجارية ميدانياً' : 'Assessments In Progress',
+        value: inProgressAssessmentsCount,
+        badge: language === 'ar' ? 'مباشر' : 'Live Telemetry',
+        icon: Activity,
+        link: '/assessment-monitoring?tab=pipeline',
+        color: 'maroon'
+      },
+      {
+        id: 'notifications',
+        label: language === 'ar' ? 'مهام وتنبيهات الدعم' : 'Support Tasks & Alerts',
+        value: unreadNotificationsCount,
+        badge: language === 'ar' ? 'معلق' : 'Actionable',
+        icon: Bell,
+        link: '/support/notifications',
+        color: 'gold'
+      },
+    ] : [
+      {
+        id: 'candidates',
+        label: language === 'ar' ? 'إجمالي المرشحين بالمركز' : "Today's Center Candidates",
+        value: totalCandidatesCount,
+        badge: language === 'ar' ? 'مسجلون' : 'Active Cohort',
+        icon: Users2,
+        link: '/candidates',
+        color: 'maroon'
+      },
+      {
         id: 'verified',
         label: language === 'ar' ? 'المرشحون المتحقق منهم' : 'Identity Verified',
         value: verifiedCandidatesCount,
@@ -1093,30 +1133,12 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
         color: 'gold'
       },
       {
-        id: 'batches',
-        label: language === 'ar' ? 'الدفعات النشطة' : "Today's Active Batches",
-        value: activeBatchesCount,
-        badge: language === 'ar' ? 'تشغيلي' : 'Operational',
-        icon: Layers,
-        link: '/batches',
-        color: 'maroon'
-      },
-      {
-        id: 'photosVerified',
-        label: language === 'ar' ? 'الصور البيومترية الموثقة' : 'Biometric Photos Verified',
-        value: photosVerifiedCount,
-        badge: language === 'ar' ? 'مطابق' : 'Compliant',
-        icon: Camera,
-        link: '/candidate-photos',
-        color: 'gold'
-      },
-      {
-        id: 'photoAttention',
-        label: language === 'ar' ? 'تنبيهات الصور والتحقق' : 'Photo Support Flags',
-        value: photoAttentionCount,
-        badge: language === 'ar' ? 'مراجعة' : 'Review Queue',
-        icon: AlertCircle,
-        link: '/candidate-photos',
+        id: 'exitList',
+        label: language === 'ar' ? 'قائمة خروج المرشحين' : 'Candidate Exit List',
+        value: exitCandidatesCount,
+        badge: language === 'ar' ? 'مغادرة' : 'Exit Flow',
+        icon: LogOut,
+        link: '/candidate-exit-list',
         color: 'maroon'
       },
       {
@@ -1163,7 +1185,7 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
                 <span className="font-semibold text-[#3F3030]">{user.name}</span>
                 <span>•</span>
                 <span className="text-[#C9A24D] font-medium">
-                  {user.assignedFunction || (user.role === 'CBT_TEST_SUPPORT' ? (language === 'ar' ? 'دعم وتأكيد اختبار الحاسب CBT' : 'CBT Exam Authorization & Live Photo') : 'Reception & Biometric Verification')}
+                  {user.assignedFunction || (user.role === 'CBT_TEST_SUPPORT' ? (language === 'ar' ? 'دعم وتأكيد اختبار الحاسب CBT' : 'CBT Exam Authorization & Live Photo') : (user.role === 'ORGANIZER' ? (language === 'ar' ? 'منسق المركز المعتمد' : 'Center Organizer Operations') : (language === 'ar' ? 'الاستقبال والتحقق من الهوية' : 'Reception & Biometric Verification')))}
                 </span>
                 <span>•</span>
                 <span>{language === 'ar' ? 'نطاق الدعم التشغيلي للمركز' : 'Center Operational Support Scope'}</span>
@@ -1180,33 +1202,64 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
             >
               {t.common.refresh}
             </Button>
-            {user.role === 'CBT_TEST_SUPPORT' ? (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onNavigate('/cbt-exam-pending')}
-                leftIcon={<CheckSquare className="w-3.5 h-3.5" />}
-              >
-                {language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending'}
-              </Button>
+            {isCbtTestSupportUser ? (
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onNavigate('/cbt-exam-pending')}
+                  leftIcon={<CheckSquare className="w-3.5 h-3.5" />}
+                >
+                  {language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigate('/cbt-confirmed')}
+                  leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                >
+                  {language === 'ar' ? 'مؤكد اختبار CBT' : 'CBT Confirmed'}
+                </Button>
+              </>
+            ) : isOrganizerUser ? (
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onNavigate('/enrollment-pending')}
+                  leftIcon={<UserCheck className="w-3.5 h-3.5" />}
+                >
+                  {language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigate('/enroll-verify')}
+                  leftIcon={<ShieldCheck className="w-3.5 h-3.5" />}
+                >
+                  {language === 'ar' ? 'التحقق من التسجيل' : 'Enroll Verify'}
+                </Button>
+              </>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigate('/enrollment-pending')}
-                leftIcon={<UserCheck className="w-3.5 h-3.5" />}
-              >
-                {language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending'}
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onNavigate('/candidates')}
+                  leftIcon={<Search className="w-3.5 h-3.5" />}
+                >
+                  {language === 'ar' ? 'قائمة المرشحين' : 'Candidate List'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigate('/candidate-exit-list')}
+                  leftIcon={<LogOut className="w-3.5 h-3.5" />}
+                >
+                  {language === 'ar' ? 'قائمة الخروج' : 'Candidate Exit List'}
+                </Button>
+              </>
             )}
-            <Button
-              variant={user.role === 'CBT_TEST_SUPPORT' ? 'outline' : 'primary'}
-              size="sm"
-              onClick={() => onNavigate('/candidates')}
-              leftIcon={<Search className="w-3.5 h-3.5" />}
-            >
-              {language === 'ar' ? 'بحث المرشحين' : 'Candidate Lookup'}
-            </Button>
           </div>
         </div>
 
@@ -1215,13 +1268,17 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-[#C9A24D] shrink-0" />
             <span>
-              {user.role === 'CBT_TEST_SUPPORT'
+              {isCbtTestSupportUser
                 ? (language === 'ar'
                     ? 'مهام دعم اختبار CBT: التحقق من جاهزية المرشحين المسجلين، التقاط صورة اختبار CBT الإلزامية بالكاميرا المباشرة، وتأكيد الإذن ببدء اختبار الحاسب الآلي للمركز.'
                     : 'CBT Test Support Mandate: Verify enrolled candidate readiness, capture mandatory live camera CBT photo, and authorize candidates to start center CBT computer tests.')
+                : isOrganizerUser
+                ? (language === 'ar'
+                    ? 'مهام منسق المركز: التحقق من حضور المرشحين، استكمال إجراءات التسجيل في الورش، والتحقق من التسجيل المعتمد.'
+                    : 'Organizer Mandate: Candidate enrollment, workstation attendance registration, and enroll verification.')
                 : (language === 'ar'
-                    ? 'مهام فريق الدعم: مساعدة المرشحين، التحقق من الجوازات والهوية، وتدقيق الصور البيومترية. التقييم والاعتماد ورصد الدرجات صلاحية حصرية للمقيمين المعتمدين.'
-                    : 'Support Staff Mandate: Candidate identity verification, passport matching, biometric photo audit, and workshop flow assistance. Rating and evaluation authority belongs exclusively to certified Assessors.')}
+                    ? 'مهام فريق الدعم: استقبال المرشحين، التحقق من الجوازات والهوية، وتأكيد قائمة خروج المرشحين بعد انتهاء التقييم.'
+                    : 'Support Staff Mandate: Candidate identity verification, passport matching, reception, and candidate exit verification.')}
             </span>
           </div>
           <span className="text-[10px] font-mono font-bold text-[#7A2E3A] uppercase tracking-wider shrink-0 bg-white px-2 py-0.5 rounded border border-[#E8D9D2]">
@@ -1263,73 +1320,109 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
 
         {/* Quick Operational Actions Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <button
-            type="button"
-            onClick={() => onNavigate('/cbt-exam-pending')}
-            className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
-          >
-            <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
-              <CheckSquare className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending'}</div>
-              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التقاط الصورة وتأكيد الاختبار' : 'Photo capture & authorization'}</div>
-            </div>
-          </button>
+          {isCbtTestSupportUser ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onNavigate('/cbt-exam-pending')}
+                className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+              >
+                <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
+                  <CheckSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'بانتظار اختبار CBT' : 'CBT Exam Pending'}</div>
+                  <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التقاط الصورة وتأكيد الاختبار' : 'Photo capture & authorization'}</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('/cbt-confirmed')}
+                className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+              >
+                <div className="p-2 rounded-lg bg-[#FBF6E8] text-[#C9A24D] group-hover:bg-[#C9A24D] group-hover:text-white transition-colors">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'مؤكد اختبار CBT' : 'CBT Confirmed'}</div>
+                  <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'قائمة المرشحين المصرح لهم' : 'Authorized CBT candidate list'}</div>
+                </div>
+              </button>
+            </>
+          ) : isOrganizerUser ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onNavigate('/enrollment-pending')}
+                className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+              >
+                <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'بانتظار التسجيل' : 'Enrollment Pending'}</div>
+                  <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'تسجيل المرشحين وتعيين الورش' : 'Candidate enrollment'}</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('/enroll-verify')}
+                className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+              >
+                <div className="p-2 rounded-lg bg-[#FBF6E8] text-[#C9A24D] group-hover:bg-[#C9A24D] group-hover:text-white transition-colors">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'التحقق من التسجيل' : 'Enroll Verify'}</div>
+                  <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'سجل المرشحين المسجلين' : 'Enrolled candidate list'}</div>
+                </div>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => onNavigate('/candidates')}
+                className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+              >
+                <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'قائمة المرشحين' : 'Candidate Registry'}</div>
+                  <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التحقق ومطابقة الهوية' : 'Verify identity & APRO'}</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('/candidate-exit-list')}
+                className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
+              >
+                <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
+                  <LogOut className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'قائمة خروج المرشحين' : 'Candidate Exit List'}</div>
+                  <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التحقق وتأكيد المغادرة' : 'Verify & confirm exit'}</div>
+                </div>
+              </button>
+            </>
+          )}
 
           <button
             type="button"
-            onClick={() => onNavigate('/candidates')}
-            className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
-          >
-            <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
-              <UserCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'قائمة المرشحين' : 'Candidate Registry'}</div>
-              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التحقق ومطابقة الهوية' : 'Verify identity & APRO'}</div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('/candidate-exit-list')}
-            className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
-          >
-            <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
-              <LogOut className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'قائمة خروج المرشحين' : 'Candidate Exit List'}</div>
-              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التحقق وتأكيد المغادرة' : 'Verify & confirm exit'}</div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('/candidate-photos')}
-            className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
-          >
-            <div className="p-2 rounded-lg bg-[#FBF6E8] text-[#C9A24D] group-hover:bg-[#C9A24D] group-hover:text-white transition-colors">
-              <Camera className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'الصور البيومترية' : 'Biometric Photos'}</div>
-              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'التدقيق والتعديل المعتمد' : 'Review & authorized retake'}</div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('/batches')}
+            onClick={() => onNavigate('/assessment-monitoring?tab=pipeline')}
             className="p-3 rounded-xl bg-white border border-[#E8D9D2] hover:border-[#7A2E3A] hover:bg-[#FFFCF8] transition-all text-start flex items-center gap-3 shadow-2xs group"
           >
             <div className="p-2 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] group-hover:bg-[#7A2E3A] group-hover:text-white transition-colors">
               <Layers className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'دفعات اليوم' : "Today's Batches"}</div>
-              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'متابعة وفود الاختبار' : 'Track cohort schedules'}</div>
+              <div className="text-xs font-bold text-[#3F3030]">{language === 'ar' ? 'مسار التقييم' : 'Assessment Pipeline'}</div>
+              <div className="text-[10px] text-[#806F6F]">{language === 'ar' ? 'متابعة مراحل الإنجاز' : 'Track pipeline stages'}</div>
             </div>
           </button>
 
@@ -1356,15 +1449,23 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
               <div className="p-4 border-b border-[#E8D9D2] bg-[#FFFCF8] flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold text-[#3F3030] uppercase tracking-wider">
-                    {language === 'ar' ? 'سجل استقبال وتحقق المرشحين بالمركز' : 'Center Candidate Reception & Verification Pool'}
+                    {isCbtTestSupportUser
+                      ? (language === 'ar' ? 'قائمة انتظار وتأكيد اختبار CBT' : 'CBT Examination Queue & Authorization')
+                      : isOrganizerUser
+                      ? (language === 'ar' ? 'قائمة انتظار وتسجيل المرشحين' : 'Pending Enrollment & Verification Queue')
+                      : (language === 'ar' ? 'سجل استقبال وتحقق المرشحين بالمركز' : 'Center Candidate Reception & Verification Pool')}
                   </h4>
                   <p className="text-[11px] text-[#806F6F] mt-0.5">
-                    {language === 'ar' ? `${centerCandidates.length} مرشح ضمن نطاق المركز الحالي` : `${centerCandidates.length} candidates assigned to this center`}
+                    {isCbtTestSupportUser
+                      ? (language === 'ar' ? `${cbtPendingCount} مرشح بانتظار تأكيد اختبار CBT` : `${cbtPendingCount} candidates awaiting CBT authorization`)
+                      : isOrganizerUser
+                      ? (language === 'ar' ? `${pendingEnrollmentCount} مرشح بانتظار استكمال التسجيل` : `${pendingEnrollmentCount} candidates pending enrollment`)
+                      : (language === 'ar' ? `${centerCandidates.length} مرشح ضمن نطاق المركز الحالي` : `${centerCandidates.length} candidates assigned to this center`)}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => onNavigate('/candidates')}
+                  onClick={() => onNavigate(isCbtTestSupportUser ? '/cbt-exam-pending' : isOrganizerUser ? '/enrollment-pending' : '/candidates')}
                   className="text-xs text-[#7A2E3A] font-semibold hover:underline flex items-center gap-1"
                 >
                   <span>{language === 'ar' ? 'عرض الكل' : 'View All'}</span>
@@ -1385,7 +1486,20 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E8D9D2]/60">
-                    {centerCandidates.slice(0, 6).map(cand => (
+                    {(isCbtTestSupportUser
+                      ? centerCandidates.filter(c => {
+                          const isEnrolled = c.enrollmentStatus === 'ENROLLED' || c.enrollmentStatus === 'ENROLLMENT_VERIFY' || c.status === 'ENROLLED' || c.status === 'ENROLLMENT_VERIFY' || !!c.enrolledAt;
+                          const isCbtPending = (!c.cbtStatus || c.cbtStatus === 'NOT_STARTED' || c.cbtStatus === 'PENDING') && c.cbtStatus !== 'CONFIRMED' && c.cbtStatus !== 'COMPLETED';
+                          return isEnrolled && isCbtPending;
+                        })
+                      : isOrganizerUser
+                      ? centerCandidates.filter(c => {
+                          const isEntryVerified = c.supportStaffVerificationStatus === 'CONFIRMED' || c.passportMatchConfirmed === true;
+                          const alreadyEnrolled = c.enrollmentStatus === 'ENROLLED' || c.status === 'ENROLLED' || c.enrollmentStatus === 'ENROLLMENT_VERIFY' || c.status === 'ENROLLMENT_VERIFY';
+                          return isEntryVerified && !alreadyEnrolled;
+                        })
+                      : centerCandidates
+                    ).slice(0, 6).map(cand => (
                       <tr key={cand.id} className="hover:bg-[#FAF8F5]/60 transition-colors">
                         <td className="py-2.5 px-3">
                           <div className="flex items-center gap-2">
@@ -1431,7 +1545,7 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
                         <td className="py-2.5 px-3 text-center">
                           <button
                             type="button"
-                            onClick={() => onNavigate('/candidates')}
+                            onClick={() => onNavigate(isCbtTestSupportUser ? '/cbt-exam-pending' : isOrganizerUser ? '/enrollment-pending' : '/candidates')}
                             className="p-1 rounded text-[#806F6F] hover:text-[#7A2E3A] hover:bg-[#F8ECEE] transition-colors"
                             title={language === 'ar' ? 'عرض التفاصيل' : 'View Candidate Dossier'}
                           >
@@ -1442,48 +1556,6 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-
-            {/* Today's Active Batches Summary */}
-            <div className="border border-[#E8D9D2] rounded-xl bg-white shadow-2xs p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-[#3F3030] uppercase tracking-wider">
-                    {language === 'ar' ? 'دفعات اليوم وحالة الإنجاز الميداني' : "Today's Cohort Progress"}
-                  </h4>
-                  <p className="text-[11px] text-[#806F6F]">
-                    {language === 'ar' ? 'متابعة اكتمال حضور وفود الاختبار' : 'Shift attendance and candidate progress'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/batches')}
-                  className="text-xs text-[#7A2E3A] font-semibold hover:underline flex items-center gap-1"
-                >
-                  <span>{language === 'ar' ? 'عرض الدفعات' : 'View Batches'}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {centerBatches.slice(0, 4).map(b => {
-                  const bCandidates = centerCandidates.filter(c => c.batchId === b.id);
-                  const verifiedCount = bCandidates.filter(c => c.status === 'VERIFIED' || c.enrollmentStatus === 'ENROLLED' || c.status === 'COMPLETED').length;
-                  return (
-                    <div key={b.id} className="p-3 rounded-lg border border-[#E8D9D2] bg-[#FFFCF8] space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-xs text-[#7A2E3A]">{b.batchNumber}</span>
-                        <StatusBadge status={b.status} />
-                      </div>
-                      <div className="text-[11px] text-[#3F3030] font-semibold truncate">{b.occupation}</div>
-                      <div className="flex items-center justify-between text-[11px] text-[#806F6F] pt-1 border-t border-[#E8D9D2]/70">
-                        <span>{language === 'ar' ? 'المتحقق منهم:' : 'Verified Intake:'}</span>
-                        <span className="font-semibold text-[#3F3030]">{verifiedCount} / {b.candidateCount}</span>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </div>

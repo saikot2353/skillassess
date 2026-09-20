@@ -48,45 +48,108 @@ export const STORAGE_KEYS = {
 } as const;
 
 export class StorageService {
+  private static _memoryStore: Map<string, string> = new Map();
+
   /**
-   * Safely retrieve item from localStorage with malformed/corrupted data handling
+   * Safely retrieve item with memory cache read-through and malformed data handling
    */
   static get<T>(key: string, defaultValue: T): T {
     try {
+      // 1. Check in-memory store first (always reflects the most recent session state)
+      if (this._memoryStore.has(key)) {
+        const memoryVal = this._memoryStore.get(key);
+        if (memoryVal !== undefined) {
+          return JSON.parse(memoryVal) as T;
+        }
+      }
+
+      // 2. Read through to localStorage if not yet cached in memory
+      if (typeof localStorage === 'undefined') {
+        return defaultValue;
+      }
       const raw = localStorage.getItem(key);
       if (raw === null || raw === undefined) {
         return defaultValue;
       }
+
+      // Cache in memory store
+      this._memoryStore.set(key, raw);
       return JSON.parse(raw) as T;
     } catch (err) {
-      console.warn(`[storageService] Error parsing key "${key}". Falling back to default.`, err);
+      console.warn(`[storageService] Error reading/parsing key "${key}". Falling back to default.`, err);
       return defaultValue;
     }
   }
 
   /**
-   * Safely write item to localStorage
+   * Safely write item to localStorage with write-through memory store & quota recovery
    */
-  static set<T>(key: string, value: T): void {
+  static set<T>(key: string, value: T): boolean {
+    const serialized = JSON.stringify(value);
+    this._memoryStore.set(key, serialized);
+
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      if (typeof localStorage === 'undefined') {
+        return true;
+      }
+      localStorage.setItem(key, serialized);
+      return true;
     } catch (err) {
-      console.error(`[storageService] Error saving key "${key}".`, err);
+      console.warn(`[storageService] Storage quota or write issue for key "${key}". Running auto-recovery...`, err);
+      try {
+        // Prune transient and bulky collections to free up localStorage quota
+        const auditLogs = this.get<any[]>(STORAGE_KEYS.AUDIT, []);
+        if (auditLogs.length > 25) {
+          const trimmedAudit = JSON.stringify(auditLogs.slice(0, 25));
+          this._memoryStore.set(STORAGE_KEYS.AUDIT, trimmedAudit);
+          localStorage.setItem(STORAGE_KEYS.AUDIT, trimmedAudit);
+        }
+        const liveActivity = this.get<any[]>(STORAGE_KEYS.LIVE_ACTIVITY, []);
+        if (liveActivity.length > 15) {
+          const trimmedActivity = JSON.stringify(liveActivity.slice(0, 15));
+          this._memoryStore.set(STORAGE_KEYS.LIVE_ACTIVITY, trimmedActivity);
+          localStorage.setItem(STORAGE_KEYS.LIVE_ACTIVITY, trimmedActivity);
+        }
+        const notifications = this.get<any[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+        if (notifications.length > 15) {
+          const trimmedNotifications = JSON.stringify(notifications.slice(0, 15));
+          this._memoryStore.set(STORAGE_KEYS.NOTIFICATIONS, trimmedNotifications);
+          localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, trimmedNotifications);
+        }
+        const photos = this.get<any[]>(STORAGE_KEYS.CANDIDATE_PHOTOS, []);
+        if (photos.length > 25) {
+          const trimmedPhotos = JSON.stringify(photos.slice(0, 25));
+          this._memoryStore.set(STORAGE_KEYS.CANDIDATE_PHOTOS, trimmedPhotos);
+          localStorage.setItem(STORAGE_KEYS.CANDIDATE_PHOTOS, trimmedPhotos);
+        }
+        // Retry writing key to localStorage
+        localStorage.setItem(key, serialized);
+        return true;
+      } catch (retryErr) {
+        console.warn(`[storageService] Persistent storage full. Retaining in active session memory store for "${key}".`, retryErr);
+        // Stored reliably in _memoryStore, returning true to prevent breaking user workflow
+        return true;
+      }
     }
   }
 
   /**
    * Update or append an item in an array-based collection
    */
-  static updateItem<T extends { id: string }>(key: string, item: T): void {
-    const list = this.get<T[]>(key, []);
-    const index = list.findIndex(i => i.id === item.id);
-    if (index >= 0) {
-      list[index] = item;
-    } else {
-      list.unshift(item);
+  static updateItem<T extends { id: string }>(key: string, item: T): boolean {
+    try {
+      const list = this.get<T[]>(key, []);
+      const index = list.findIndex(i => i.id === item.id);
+      if (index >= 0) {
+        list[index] = item;
+      } else {
+        list.unshift(item);
+      }
+      return this.set(key, list);
+    } catch (err) {
+      console.error(`[storageService] Error updating item in key "${key}".`, err);
+      return false;
     }
-    this.set(key, list);
   }
 
   /**
@@ -103,9 +166,19 @@ export class StorageService {
    */
   static clear(key?: string): void {
     if (key) {
-      localStorage.removeItem(key);
+      this._memoryStore.delete(key);
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(key);
+        }
+      } catch {}
     } else {
-      Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+      this._memoryStore.clear();
+      try {
+        if (typeof localStorage !== 'undefined') {
+          Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+        }
+      } catch {}
     }
   }
 

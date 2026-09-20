@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Layers, Calendar, Trash2, Search, Save, Eye, CheckCircle2, FileSpreadsheet, Clock } from 'lucide-react';
+import { Plus, Layers, Calendar, Trash2, Search, Save, Eye, CheckCircle2, FileSpreadsheet, Clock, FileArchive } from 'lucide-react';
 import { Batch, Center, Candidate } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
@@ -15,6 +15,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Pagination } from '../components/ui/Pagination';
+import { BatchEvaluationSummaryModal } from '../components/batches/BatchEvaluationSummaryModal';
 
 export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
@@ -35,6 +36,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [viewingBatch, setViewingBatch] = useState<Batch | null>(null);
+  const [evaluationSummaryBatch, setEvaluationSummaryBatch] = useState<Batch | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     batchNumber: `BATCH-2026-0${Math.floor(10 + Math.random() * 90)}`,
@@ -172,6 +174,18 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-[#7A2E3A]" />
             <span className="hidden sm:inline">{language === 'ar' ? 'استيراد' : 'Import'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEvaluationSummaryBatch(b);
+              AuditService.log('VIEW', 'BATCH_EVALUATION_SUMMARY', `Opened batch evaluation summary modal for ${b.batchNumber}`, b.id);
+            }}
+            className="p-1.5 px-2 rounded text-xs font-medium text-[#7A2E3A] hover:bg-[#F8ECEE] border border-[#E8D9D2] transition-colors inline-flex items-center gap-1"
+            title={language === 'ar' ? 'حزمة الأدلة والتقييم' : 'Assessment Evidence & Evaluation Package'}
+          >
+            <FileArchive className="w-3.5 h-3.5 text-[#7A2E3A]" />
+            <span className="hidden md:inline">{language === 'ar' ? 'حزمة الأدلة' : 'Evidence Package'}</span>
           </button>
           <button
             type="button"
@@ -469,6 +483,18 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
           </div>
         </Modal>
       )}
+
+      {/* Batch Evaluation Summary & Evidence Package Modal */}
+      <BatchEvaluationSummaryModal
+        isOpen={Boolean(evaluationSummaryBatch)}
+        onClose={() => {
+          setEvaluationSummaryBatch(null);
+          loadData();
+        }}
+        batch={evaluationSummaryBatch}
+        candidates={candidates}
+        centers={centers}
+      />
     </div>
   );
 };

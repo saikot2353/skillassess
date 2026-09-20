@@ -78,7 +78,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'report.view',
   ],
   SUPPORT_STAFF: [
-    'candidate.view', 'candidate.enroll',
+    'candidate.view',
     'schedule.view',
     'assessment.view',
     'idcard.view', 'idcard.request',

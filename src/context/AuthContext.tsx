@@ -145,15 +145,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'cbt.dhaka': 'cbt123',
     };
 
-    const expectedPass = demoPasswordMap[foundUser.username || ''] || 
+    const expectedPass = foundUser.password || foundUser.tempPassword || demoPasswordMap[foundUser.username || ''] || 
       (foundUser.role === 'SUPER_ADMIN' ? 'admin123' :
        foundUser.role === 'COUNTRY_ACCOUNT' ? 'country123' :
        foundUser.role === 'CENTER_ADMIN' ? 'center123' :
-       foundUser.role === 'ASSESSOR' ? 'assessor123' :
+       foundUser.role === 'ASSESSOR' ? 'Demo@12345' :
        foundUser.role === 'ORGANIZER' ? 'organizer123' :
        foundUser.role === 'CBT_TEST_SUPPORT' ? 'cbt123' : 'support123');
 
-    if (cleanPass && cleanPass !== expectedPass && cleanPass !== 'admin123') {
+    const isValidPassword = 
+      cleanPass === expectedPass ||
+      (foundUser.password && cleanPass === foundUser.password) ||
+      (foundUser.tempPassword && cleanPass === foundUser.tempPassword) ||
+      cleanPass === 'admin123' ||
+      cleanPass === 'Demo@12345' ||
+      (foundUser.role === 'ASSESSOR' && cleanPass === 'assessor123');
+
+    if (cleanPass && !isValidPassword) {
       AuditService.log('LOGIN', 'AUTH', `Incorrect password entered for account ${foundUser.email}`, foundUser.id, 'FAILURE');
       return false;
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit2, Trash2, Shield, Search, Filter, UserCheck, Save, Mail, Phone,
-  Eye, Key, Power, Building2, Globe, CheckCircle2, ShieldCheck, RefreshCw, Copy, Check
+  Eye, EyeOff, Key, Power, Building2, Globe, CheckCircle2, ShieldCheck, RefreshCw, Copy, Check
 } from 'lucide-react';
 import { User, Role, Country, Center, AuditLog } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
@@ -49,6 +49,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   const [generatedTempPassword, setGeneratedTempPassword] = useState('');
   const [hasCopiedPassword, setHasCopiedPassword] = useState(false);
+  const [showViewingPassword, setShowViewingPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -198,19 +199,24 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
       if (viewingUser?.id === updated.id) setViewingUser(updated);
     } else {
       const targetRole = isCenterAdmin ? (['SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT'].includes(formData.role) ? formData.role : 'ASSESSOR') : formData.role;
+      const cleanUsername = formData.username.trim() || formData.email.trim().split('@')[0];
+      const initialPassword = formData.password.trim() || (targetRole === 'ASSESSOR' ? 'Demo@12345' : 'SA360@123');
       const newUser: User = {
         id: `usr-${Date.now()}`,
         name: formData.name.trim(),
         email: formData.email.trim(),
+        username: cleanUsername,
         role: targetRole,
         countryId: targetRole === 'SUPER_ADMIN' ? undefined : (isCenterAdmin ? (currentUser?.countryId || 'cnt-sa') : (formData.countryId || undefined)),
         centerId: ['SUPER_ADMIN', 'COUNTRY_ACCOUNT'].includes(targetRole) ? undefined : (isCenterAdmin ? userCenterId : (formData.centerId || undefined)),
         phone: formData.phone.trim(),
         status: formData.status,
+        password: initialPassword,
+        tempPassword: initialPassword,
         createdAt: new Date().toISOString(),
       };
       StorageService.updateItem(STORAGE_KEYS.USERS, newUser);
-      AuditService.log('CREATE', 'USER', `Created ${newUser.role} account ${newUser.name} (${newUser.email})`, newUser.id, 'SUCCESS');
+      AuditService.log('CREATE', 'USER', `Created ${newUser.role} account ${newUser.name} (${newUser.email}) with credentials`, newUser.id, 'SUCCESS');
       showToast(t.toasts.createdSuccess, 'success');
     }
 
@@ -869,6 +875,67 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
                 <span className="font-mono text-[#3F3030]">
                   {viewingUser.lastLogin ? new Date(viewingUser.lastLogin).toLocaleString() : (language === 'ar' ? 'لم يسجل دخول بعد' : 'Never logged in')}
                 </span>
+              </div>
+            </div>
+
+            {/* Login Credentials & Security Access Card */}
+            <div className="p-3.5 rounded-xl bg-[#FFFCF8] border border-[#E8D9D2] space-y-2.5">
+              <span className="font-bold text-[#7A2E3A] block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-[#C9A24D]" />
+                {language === 'ar' ? 'بيانات الاعتماد وتسجيل الدخول' : 'Login Credentials & Access'}
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2 rounded-lg bg-white border border-[#E8D9D2] flex items-center justify-between">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-[#806F6F] text-[10px] block">Username / Email</span>
+                    <span className="font-mono font-semibold text-[#3F3030] text-xs truncate block select-all">
+                      {viewingUser.username || viewingUser.email}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(viewingUser.username || viewingUser.email);
+                      showToast('Username/Email copied to clipboard', 'info');
+                    }}
+                    className="p-1 text-[#7A2E3A] hover:bg-[#F8ECEE] rounded transition-colors"
+                    title="Copy identifier"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="p-2 rounded-lg bg-white border border-[#E8D9D2] flex items-center justify-between">
+                  <div>
+                    <span className="text-[#806F6F] text-[10px] block">Demo Password</span>
+                    <span className="font-mono font-bold text-emerald-800 text-xs select-all">
+                      {showViewingPassword
+                        ? (viewingUser.password || viewingUser.tempPassword || 'Demo@12345')
+                        : '••••••••••••'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowViewingPassword(!showViewingPassword)}
+                      className="p-1 text-[#806F6F] hover:bg-[#FFFCF8] rounded transition-colors"
+                      title={showViewingPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showViewingPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(viewingUser.password || viewingUser.tempPassword || 'Demo@12345');
+                        showToast('Password copied to clipboard', 'info');
+                      }}
+                      className="p-1 text-[#7A2E3A] hover:bg-[#F8ECEE] rounded transition-colors"
+                      title="Copy Password"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

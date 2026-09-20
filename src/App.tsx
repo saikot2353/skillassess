@@ -126,7 +126,7 @@ const RouterContent: React.FC = () => {
       case '/candidates':
       case '/support/candidates':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="entry" />
           </ProtectedRoute>
         );
@@ -134,7 +134,7 @@ const RouterContent: React.FC = () => {
       case '/enrollment-pending':
       case '/support/enrollment-pending':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'ORGANIZER']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="enrollment-pending" />
           </ProtectedRoute>
         );
@@ -143,7 +143,7 @@ const RouterContent: React.FC = () => {
       case '/cbt/pending':
       case '/support/cbt-exam-pending':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="cbt-pending" />
           </ProtectedRoute>
         );
@@ -152,7 +152,7 @@ const RouterContent: React.FC = () => {
       case '/cbt-exam-confirmed':
       case '/cbt/confirmed':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="cbt-confirmed" />
           </ProtectedRoute>
         );
@@ -189,7 +189,7 @@ const RouterContent: React.FC = () => {
       case '/support/enroll-verify':
       case '/enrollment-verify':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'ORGANIZER']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="enroll-verify" />
           </ProtectedRoute>
         );
@@ -197,7 +197,7 @@ const RouterContent: React.FC = () => {
       case '/candidate-exit-list':
       case '/support/candidate-exit-list':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
             <CandidatesPage onNavigate={navigate} mode="exit" />
           </ProtectedRoute>
         );
@@ -221,7 +221,7 @@ const RouterContent: React.FC = () => {
       case '/photos':
       case '/support/photos':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN']} onNavigate={navigate}>
             <CandidatePhotosPage onNavigate={navigate} />
           </ProtectedRoute>
         );
@@ -259,7 +259,7 @@ const RouterContent: React.FC = () => {
       case '/batches':
       case '/support/batches':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN']} onNavigate={navigate}>
             <BatchesPage onNavigate={navigate} />
           </ProtectedRoute>
         );
@@ -382,7 +382,7 @@ const RouterContent: React.FC = () => {
 
       case '/assessor/candidate-verification':
         return (
-          <ProtectedRoute allowedRoles={['ASSESSOR', 'SUPER_ADMIN']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onNavigate={navigate}>
             <AssessorCandidateVerification onNavigate={navigate} />
           </ProtectedRoute>
         );
@@ -403,14 +403,14 @@ const RouterContent: React.FC = () => {
 
       case '/assessor/evidence':
         return (
-          <ProtectedRoute allowedRoles={['ASSESSOR', 'SUPER_ADMIN']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onNavigate={navigate}>
             <AssessorEvidencePage onNavigate={navigate} />
           </ProtectedRoute>
         );
 
       case '/assessor/evaluation':
         return (
-          <ProtectedRoute allowedRoles={['ASSESSOR', 'SUPER_ADMIN']} onNavigate={navigate}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onNavigate={navigate}>
             <AssessorEvaluationPage onNavigate={navigate} />
           </ProtectedRoute>
         );
