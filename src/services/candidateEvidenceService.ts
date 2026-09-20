@@ -53,7 +53,7 @@ export const getCandidateAssessmentPhotos = (
   const candPhotos = ledger.filter(p => p.candidateId === candidate.id);
 
   // 1. Enrollment Photo
-  const enrollPhotoFromLedger = candPhotos.find(p => p.stage === 'ENROLLMENT_VERIFICATION' || p.photoType === 'ENROLLMENT');
+  const enrollPhotoFromLedger = candPhotos.find(p => p.stage === 'ENROLLMENT_VERIFICATION' || p.photoType === 'ENROLLMENT_PHOTO' || p.photoType === 'ENROLLMENT');
   const enrollmentUrl = candidate.enrollmentPhoto || enrollPhotoFromLedger?.photoUrl || candidate.photoUrl;
   const enrollDate = enrollPhotoFromLedger?.captureDate || 
     (candidate.enrolledAt ? new Date(candidate.enrolledAt).toLocaleDateString('en-GB') : candidate.supportStaffConfirmationDate || '18/09/2026');
@@ -61,14 +61,14 @@ export const getCandidateAssessmentPhotos = (
     (candidate.enrolledAt ? new Date(candidate.enrolledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : candidate.supportStaffConfirmationTime || '08:30 AM');
 
   // 2. CBT Photo
-  const cbtPhotoFromLedger = candPhotos.find(p => p.stage === 'CBT_EXAMINATION' || p.photoType?.includes('CBT'));
+  const cbtPhotoFromLedger = candPhotos.find(p => p.stage === 'CBT_EXAMINATION' || p.photoType === 'CBT_EXAMINATION_PHOTO' || p.photoType?.includes('CBT'));
   const cbtUrl = candidate.cbtPhoto || candidate.cbtPhotoRecord?.photoUrl || cbtPhotoFromLedger?.photoUrl || candidate.photoUrl;
   const cbtDate = candidate.cbtConfirmationDate || candidate.cbtPhotoRecord?.captureDate || cbtPhotoFromLedger?.captureDate || '18/09/2026';
   const cbtTime = candidate.cbtConfirmationTime || candidate.cbtPhotoRecord?.captureTime || cbtPhotoFromLedger?.captureTime || '09:45 AM';
 
   // 3. Practical Photo 1 & 2
-  const prac1FromLedger = candPhotos.find(p => p.photoType === 'Practical Photo 1' || (p.stage === 'PRACTICAL_ASSESSMENT' && !p.photoType?.includes('2')));
-  const prac2FromLedger = candPhotos.find(p => p.photoType === 'Practical Photo 2' || (p.stage === 'PRACTICAL_ASSESSMENT' && p.photoType?.includes('2')));
+  const prac1FromLedger = candPhotos.find(p => p.photoType === 'PRACTICAL_PHOTO_1' || p.photoType === 'Practical Photo 1' || (p.stage === 'PRACTICAL_ASSESSMENT' && !p.photoType?.includes('2')));
+  const prac2FromLedger = candPhotos.find(p => p.photoType === 'PRACTICAL_PHOTO_2' || p.photoType === 'Practical Photo 2' || (p.stage === 'PRACTICAL_ASSESSMENT' && p.photoType?.includes('2')));
   
   const practical1Url = candidate.practicalPhoto1 || prac1FromLedger?.photoUrl || candidate.photoUrl;
   const practical1Date = candidate.practicalConfirmationDate || prac1FromLedger?.captureDate || '18/09/2026';

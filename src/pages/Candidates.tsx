@@ -282,9 +282,11 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       } else if (isCbtConfirmedMode) {
         setVerificationPhoto(viewCandidate.cbtPhoto || null);
       } else if (isEnrollmentPendingMode) {
-        setVerificationPhoto(viewCandidate.enrollmentPhoto || viewCandidate.passportVerificationPhoto || viewCandidate.photoUrl || null);
+        // Enrollment Photo must be blank by default in Enrollment Pending mode.
+        // It must NOT be pre-populated from the Support Staff Entry Verification Photo.
+        setVerificationPhoto(null);
       } else if (isEnrollVerifyMode) {
-        setVerificationPhoto(viewCandidate.enrollmentPhoto || viewCandidate.passportVerificationPhoto || null);
+        setVerificationPhoto(viewCandidate.enrollmentPhoto || null);
       } else {
         setVerificationPhoto(viewCandidate.passportVerificationPhoto || null);
       }
@@ -605,6 +607,25 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     ];
     StorageService.set(STORAGE_KEYS.PASSPORT_VERIFICATIONS, updatedVerifications);
 
+    // 3. Persist separate Entry Verification photo record in candidate photos ledger
+    const entryPhotoRecord: CandidatePhoto = {
+      id: `photo-entry-${viewCandidate.id}-${Date.now()}`,
+      candidateId: viewCandidate.id,
+      candidateName: viewCandidate.fullNameEn,
+      passportNumber: viewCandidate.passportNumber,
+      photoUrl: verificationPhoto,
+      photoType: 'ENTRY_VERIFICATION_PHOTO',
+      purpose: '1st Entry Verification Photo',
+      captureDate: confirmationDate,
+      captureTime: confirmationTime,
+      capturedAt: new Date().toISOString(),
+      capturedBy: confirmedBy,
+      verified: true,
+      stage: '1ST_ENTRY_VERIFICATION',
+    };
+    const existingCandidatePhotos = StorageService.get<CandidatePhoto[]>(STORAGE_KEYS.CANDIDATE_PHOTOS, []);
+    StorageService.set(STORAGE_KEYS.CANDIDATE_PHOTOS, [entryPhotoRecord, ...existingCandidatePhotos]);
+
     // 3. Log Audit
     AuditService.log(
       'CANDIDATE_VERIFICATION',
@@ -720,9 +741,11 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     }
 
     // 3. Mandatory Candidate Photo Validation
-    const finalPhoto = verificationPhoto || viewCandidate.enrollmentPhoto || viewCandidate.passportVerificationPhoto || viewCandidate.photoUrl;
+    // The Enrollment Photo must be captured specifically by the Organizer.
+    // It must NOT be pre-populated or fall back to the Entry Verification Photo or Profile Photo.
+    const finalPhoto = verificationPhoto;
     if (!finalPhoto) {
-      showToast('Candidate photo is mandatory before confirming enrollment.', 'error');
+      showToast('Candidate enrollment photo is mandatory before confirming enrollment.', 'error');
       return;
     }
 
@@ -733,12 +756,12 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
 
     // 4. Create a separate, permanent photo record (Preserving previous verification photo & profile picture)
     const newPhotoRecord: CandidatePhoto = {
-      id: `photo-${viewCandidate.id}-${Date.now()}`,
+      id: `photo-enroll-${viewCandidate.id}-${Date.now()}`,
       candidateId: viewCandidate.id,
       candidateName: viewCandidate.fullNameEn,
       passportNumber: viewCandidate.passportNumber,
       photoUrl: finalPhoto,
-      photoType: 'ENROLLMENT',
+      photoType: 'ENROLLMENT_PHOTO',
       purpose: 'Enrollment Verification Photo',
       captureDate: confirmationDate,
       captureTime: confirmationTime,
@@ -849,7 +872,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       candidateName: viewCandidate.fullNameEn,
       passportNumber: viewCandidate.passportNumber,
       photoUrl: verificationPhoto,
-      photoType: 'CBT Examination Photo',
+      photoType: 'CBT_EXAMINATION_PHOTO',
       purpose: 'CBT Examination Pre-Test Photo',
       captureDate: confirmationDate,
       captureTime: confirmationTime,
@@ -942,7 +965,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       candidateName: viewCandidate.fullNameEn,
       passportNumber: viewCandidate.passportNumber,
       photoUrl: practicalPhoto1,
-      photoType: 'Practical Photo 1',
+      photoType: 'PRACTICAL_PHOTO_1',
       purpose: 'Practical Assessment Photo 1 (Mandatory Camera)',
       captureDate: confirmationDate,
       captureTime: confirmationTime,
@@ -962,7 +985,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
         candidateName: viewCandidate.fullNameEn,
         passportNumber: viewCandidate.passportNumber,
         photoUrl: practicalPhoto2,
-        photoType: 'Practical Photo 2',
+        photoType: 'PRACTICAL_PHOTO_2',
         purpose: 'Practical Assessment Photo 2 (Optional Camera)',
         captureDate: confirmationDate,
         captureTime: confirmationTime,
@@ -1927,7 +1950,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
       key: 'enrollmentPhoto',
       header: language === 'ar' ? 'صورة التسجيل' : 'Enrollment Photo',
       render: c => {
-        const photo = c.enrollmentPhoto || c.photoUrl;
+        const photo = c.enrollmentPhoto;
         return (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-md overflow-hidden border border-[#D5D0C7] bg-[#FAF8F5] shrink-0 shadow-2xs">
@@ -2875,7 +2898,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                 <Button
                   variant="primary"
                   size="sm"
-                  disabled={!verificationPhoto && !viewCandidate.enrollmentPhoto && !viewCandidate.passportVerificationPhoto && !viewCandidate.photoUrl}
+                  disabled={!verificationPhoto}
                   onClick={handleConfirmEnrollment}
                   leftIcon={<UserCheck className="w-3.5 h-3.5" />}
                 >

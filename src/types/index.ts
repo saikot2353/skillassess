@@ -138,14 +138,14 @@ export interface CandidatePhoto {
   candidateName: string;
   passportNumber: string;
   photoUrl: string;
-  photoType?: 'PROFILE' | 'ENTRY_VERIFICATION' | 'ENROLLMENT' | 'EXIT' | string;
+  photoType?: 'PROFILE' | 'ENTRY_VERIFICATION' | 'ENTRY_VERIFICATION_PHOTO' | 'ENROLLMENT' | 'ENROLLMENT_PHOTO' | 'CBT_EXAMINATION_PHOTO' | 'PRACTICAL_PHOTO_1' | 'PRACTICAL_PHOTO_2' | 'EXIT' | string;
   purpose?: string;
   captureDate?: string;
   captureTime?: string;
   capturedAt: string;
   capturedBy: string;
   verified?: boolean;
-  stage?: '1ST_ENTRY_VERIFICATION' | 'ENROLLMENT_VERIFICATION' | string;
+  stage?: '1ST_ENTRY_VERIFICATION' | 'ENROLLMENT_VERIFICATION' | 'CBT_EXAMINATION' | 'PRACTICAL_ASSESSMENT' | string;
 }
 
 export interface PassportVerificationRecord {
