@@ -420,18 +420,14 @@ export const LiveStatusPage: React.FC<LiveStatusPageProps> = ({ onNavigate }) =>
                 <th className="py-2.5 px-3 text-start font-semibold">Occupation</th>
                 <th className="py-2.5 px-3 text-start font-semibold">Batch</th>
                 <th className="py-2.5 px-3 text-start font-semibold">Current Stage</th>
-                <th className="py-2.5 px-3 text-start font-semibold">Current Status</th>
                 <th className="py-2.5 px-3 text-start font-semibold">Assigned Assessor</th>
-                <th className="py-2.5 px-3 text-start font-semibold">Last Activity</th>
-                <th className="py-2.5 px-3 text-start font-semibold">Last Activity Date & Time</th>
-                <th className="py-2.5 px-3 text-start font-semibold">Next Action / Pending Action</th>
                 <th className="py-2.5 px-3 text-end font-semibold">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8D9D2]">
               {filteredCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-xs text-[#806F6F]">
+                  <td colSpan={8} className="py-12 text-center text-xs text-[#806F6F]">
                     No candidates found matching the selected batch and filters.
                   </td>
                 </tr>
@@ -483,26 +479,12 @@ export const LiveStatusPage: React.FC<LiveStatusPageProps> = ({ onNavigate }) =>
                           {info.currentStage}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3">
-                        <StatusBadge status={cand.status} />
-                      </td>
                       <td className="py-2.5 px-3 text-[#3F3030]">
                         {cand.assessorName ? (
                           <span className="font-semibold text-emerald-800">{cand.assessorName}</span>
                         ) : (
                           <span className="text-[#806F6F] italic">Not Assigned</span>
                         )}
-                      </td>
-                      <td className="py-2.5 px-3 text-[#3F3030] font-medium text-[11px]">
-                        {info.lastActivity}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#806F6F]">
-                        {info.lastActivityTime}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FBF6E8] text-[#91702C] border border-[#E8D9D2] inline-block">
-                          {info.nextAction}
-                        </span>
                       </td>
                       <td className="py-2.5 px-3 text-end" onClick={e => e.stopPropagation()}>
                         <Button

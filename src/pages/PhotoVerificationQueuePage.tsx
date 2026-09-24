@@ -397,7 +397,6 @@ export const PhotoVerificationQueuePage: React.FC<PhotoVerificationQueuePageProp
                       <th className="py-2.5 px-3 text-start font-semibold">Candidate</th>
                       <th className="py-2.5 px-3 text-start font-semibold">Passport No.</th>
                       <th className="py-2.5 px-3 text-start font-semibold">Verification Step</th>
-                      <th className="py-2.5 px-3 text-start font-semibold">Flagged By</th>
                       <th className="py-2.5 px-3 text-start font-semibold">Waiting Time</th>
                       <th className="py-2.5 px-3 text-start font-semibold">Status</th>
                       <th className="py-2.5 px-3 text-end font-semibold">Actions</th>
@@ -445,9 +444,6 @@ export const PhotoVerificationQueuePage: React.FC<PhotoVerificationQueuePageProp
                               <Camera className="w-3 h-3 text-[#A43950]" />
                               {step}
                             </span>
-                          </td>
-                          <td className="py-2.5 px-3 text-[#806F6F]">
-                            {flaggedBy}
                           </td>
                           <td className="py-2.5 px-3 font-mono text-amber-800 font-semibold">
                             <span className="inline-flex items-center gap-1">
