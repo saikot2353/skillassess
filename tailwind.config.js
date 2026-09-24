@@ -7,19 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Light Maroon Brand Palette
+        // Light Maroon Palette (used for buttons & active states)
         maroon: {
-          50: '#FDF7F8',
-          100: '#F9ECEF',
-          200: '#F4D5DB',
-          300: '#EAB2BC',
-          400: '#DB8393',
-          500: '#C5546C',
-          600: '#A43950',
-          700: '#862B3F',
-          800: '#6E2535',
-          900: '#5A202D',
-          950: '#3D111C',
+          50: '#FDF2F4',
+          100: '#FCE7EB',
+          200: '#F7D0D8',
+          300: '#EEAAB7',
+          400: '#E0758B',
+          500: '#C74A64',
+          600: '#B5435B',
+          700: '#A43950',
+          800: '#8E2F43',
+          900: '#7D283A',
+          950: '#551924',
         },
         // Elegant Gold Palette
         gold: {
@@ -35,18 +35,18 @@ export default {
           900: '#67491F',
           950: '#3C280D',
         },
-        // Warm Ivory Application Canvas
+        // Fully White Application Canvas
         canvas: {
-          base: '#FAF8F5',
+          base: '#FFFFFF',
           card: '#FFFFFF',
-          subtle: '#F6F3EE',
-          muted: '#EFECE6',
+          subtle: '#FFFFFF',
+          muted: '#F9FAFB',
         },
-        // Soft border palette
+        // Clean neutral border palette
         borderlight: {
-          DEFAULT: '#E7E2D8',
-          subtle: '#F0ECE4',
-          strong: '#D5CEC2',
+          DEFAULT: '#E5E7EB',
+          subtle: '#F3F4F6',
+          strong: '#D1D5DB',
         }
       },
       fontFamily: {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, Users, CalendarCheck, Award, ArrowLeft, 
   Edit2, Power, Globe, Mail, Phone, MapPin, CheckCircle2,
-  Clock, ShieldAlert, FileText, ChevronRight
+  Clock, ShieldAlert, FileText, ChevronRight, Eye
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
@@ -90,7 +90,7 @@ export const CountryDetails: React.FC<CountryDetailsProps> = ({
     );
   }
 
-  const countryAccountUser = users.find(u => u.role === 'COUNTRY_ACCOUNT' && u.countryId === country.id);
+  const countryAccountUser = users.find(u => (u.role === 'COUNTRY_ACCOUNT' || u.role === 'COUNTRY_ADMIN') && u.countryId === country.id);
   const centerAdminsCount = users.filter(u => u.role === 'CENTER_ADMIN').length;
   const assessorsCount = users.filter(u => u.role === 'ASSESSOR').length;
 
@@ -112,7 +112,6 @@ export const CountryDetails: React.FC<CountryDetailsProps> = ({
     { id: 'overview', label: t.countriesModule.overviewTab },
     { id: 'centers', label: `${t.countriesModule.centersTab} (${centers.length})` },
     { id: 'users', label: `${t.countriesModule.usersTab} (${users.length})` },
-    { id: 'assessments', label: `${t.countriesModule.assessmentsTab} (${assessments.length})` },
     { id: 'reports', label: t.countriesModule.reportsTab },
     { id: 'activity', label: t.countriesModule.activityTab },
   ];
@@ -195,13 +194,8 @@ export const CountryDetails: React.FC<CountryDetailsProps> = ({
           <span className="text-[10px] text-[#806F6F]">Registered roster</span>
         </div>
         <div className="p-3 rounded-lg border border-[#E8D9D2] bg-white text-xs">
-          <span className="text-[#806F6F] block text-[11px]">{t.nav.assessments}</span>
-          <span className="text-lg font-bold text-[#3F3030] block">{assessments.length}</span>
-          <span className="text-[10px] text-[#806F6F]">Scheduled & active</span>
-        </div>
-        <div className="p-3 rounded-lg border border-[#E8D9D2] bg-white text-xs">
           <span className="text-[#806F6F] block text-[11px]">{t.resultsModule.title}</span>
-          <span className="text-lg font-bold text-[#C9A24D] block">{results.length}</span>
+          <span className="text-lg font-bold text-[#D4AF37] block">{results.length}</span>
           <span className="text-[10px] text-[#806F6F]">Submitted results</span>
         </div>
       </div>
@@ -241,9 +235,19 @@ export const CountryDetails: React.FC<CountryDetailsProps> = ({
           </div>
 
           <div className="p-5 rounded-lg border border-[#E8D9D2] bg-white space-y-4 shadow-[0_1px_3px_rgba(63,48,48,0.03)]">
-            <h3 className="text-sm font-bold text-[#7A2E3A] uppercase tracking-wider border-b border-[#E8D9D2] pb-2">
-              Country Account & Official Contact
-            </h3>
+            <div className="flex items-center justify-between border-b border-[#E8D9D2] pb-2">
+              <h3 className="text-sm font-bold text-[#7A2E3A] uppercase tracking-wider">
+                Country Admin & Authority Contact
+              </h3>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => onNavigate(countryAccountUser ? `/users?role=COUNTRY_ACCOUNT&id=${countryAccountUser.id}` : `/users?role=COUNTRY_ACCOUNT&action=create&countryId=${country.id}`)}
+                className="text-[#7A2E3A] hover:text-[#5A222B] text-xs font-semibold"
+              >
+                {countryAccountUser ? 'Manage Admin →' : '+ Provision Admin'}
+              </Button>
+            </div>
             <div className="space-y-3 text-xs">
               <div className="flex justify-between py-1 border-b border-[#E8D9D2]/40">
                 <span className="text-[#806F6F]">Contact Official</span>
@@ -253,11 +257,18 @@ export const CountryDetails: React.FC<CountryDetailsProps> = ({
                 <span className="text-[#806F6F]">Official Email</span>
                 <span className="font-mono text-[#7A2E3A]">{country.contactEmail}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#E8D9D2]/40">
-                <span className="text-[#806F6F]">Country Account User</span>
-                <span className="font-semibold text-[#3F3030]">
-                  {countryAccountUser ? `${countryAccountUser.name} (${countryAccountUser.username || countryAccountUser.email})` : 'Not Provisioned'}
-                </span>
+              <div className="flex justify-between py-1 border-b border-[#E8D9D2]/40 items-center">
+                <span className="text-[#806F6F]">Assigned Country Admin</span>
+                <div className="text-end">
+                  <span className="font-semibold text-[#3F3030] block">
+                    {countryAccountUser ? `${countryAccountUser.name}` : 'Not Provisioned'}
+                  </span>
+                  {countryAccountUser && (
+                    <span className="text-[10px] text-[#806F6F] font-mono block">
+                      {countryAccountUser.email} • {countryAccountUser.status}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-[#806F6F]">Accreditation Mandate</span>
@@ -319,11 +330,13 @@ export const CountryDetails: React.FC<CountryDetailsProps> = ({
                       </td>
                       <td className="py-2.5 px-3 text-end">
                         <Button
-                          variant="ghost"
+                          variant="primary"
                           size="xs"
                           onClick={() => onNavigate(`/centers?view=details&id=${ctr.id}`)}
+                          leftIcon={<Eye className="w-3.5 h-3.5" />}
+                          title={language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
                         >
-                          {t.common.view} →
+                          {language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
                         </Button>
                       </td>
                     </tr>

@@ -81,21 +81,21 @@ export const Modal: React.FC<ModalProps> = ({
         >
           {/* Modal Header: accessible and pinned at top */}
           {(title || subtitle || icon) && (
-            <div className="flex items-start justify-between px-7 pt-6 pb-4 bg-[#FFFFFF] shrink-0 border-b border-[#E8D9D2]/60 z-10">
+            <div className="flex items-start justify-between px-7 pt-6 pb-4 bg-[#FFFFFF] shrink-0 border-b border-[#E5E7EB] z-10">
               <div className="flex items-center gap-3.5 pe-4">
                 {icon && (
-                  <div className="w-12 h-12 rounded-full bg-[#F8ECEE] text-[#7A2E3A] flex items-center justify-center shrink-0 border border-[#E8D9D2]">
+                  <div className="w-12 h-12 rounded-full bg-stone-100 text-stone-700 flex items-center justify-center shrink-0 border border-stone-200">
                     {icon}
                   </div>
                 )}
                 <div>
                   {title && (
-                    <h3 className="text-lg font-bold text-[#7A2E3A] tracking-tight leading-snug">
+                    <h3 className="text-lg font-bold text-stone-900 tracking-tight leading-snug">
                       {title}
                     </h3>
                   )}
                   {subtitle && (
-                    <p className="text-xs text-[#806F6F] mt-0.5 leading-relaxed">
+                    <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
                       {subtitle}
                     </p>
                   )}
@@ -105,7 +105,7 @@ export const Modal: React.FC<ModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-[#806F6F] hover:text-[#3F3030] hover:bg-[#F8ECEE] transition-colors shrink-0 -me-1 focus:outline-none focus:ring-2 focus:ring-[#7A2E3A]/20"
+                className="rounded-lg p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 active:bg-[#FDF2F4] transition-colors shrink-0 -me-1 focus:outline-none focus:ring-2 focus:ring-[#A43950]/20"
                 aria-label="Close modal"
               >
                 <X className="w-4.5 h-4.5" />
@@ -145,9 +145,9 @@ export const Modal: React.FC<ModalProps> = ({
 
 export const ModalSectionTitle: React.FC<{ title: string; className?: string }> = ({ title, className = '' }) => {
   return (
-    <div className={`flex items-center gap-2 border-b border-[#E8D9D2] pb-2 mb-3.5 ${className}`}>
-      <span className="w-1 h-3.5 bg-[#C9A24D] rounded-full shrink-0" />
-      <h4 className="text-xs font-bold text-[#7A2E3A] tracking-wide">
+    <div className={`flex items-center gap-2 border-b border-[#E5E7EB] pb-2 mb-3.5 ${className}`}>
+      <span className="w-1 h-3.5 bg-[#A43950] rounded-full shrink-0" />
+      <h4 className="text-xs font-bold text-stone-900 tracking-wide">
         {title}
       </h4>
     </div>

@@ -19,7 +19,12 @@ export class SearchService {
 
     const isAssessor = user?.role === 'ASSESSOR';
     const isCenterAdmin = user?.role === 'CENTER_ADMIN';
+    const isCountryAdmin = user?.role === 'COUNTRY_ADMIN' || user?.role === 'COUNTRY_ACCOUNT';
     const userCenterId = user?.centerId;
+    const userCountryId = user?.countryId;
+
+    const centers = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+    const countryCenterIds = new Set(centers.filter(c => c.countryId === userCountryId).map(c => c.id));
 
     // Search Candidates
     const candidates = StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
@@ -32,13 +37,19 @@ export class SearchService {
       if (isCenterAdmin && userCenterId && c.centerId !== userCenterId) {
         return;
       }
+      // Country Admin scope: only candidates in their assigned country or center
+      if (isCountryAdmin && userCountryId && c.countryId !== userCountryId && (!c.centerId || !countryCenterIds.has(c.centerId))) {
+        return;
+      }
 
       if (
         c.fullNameEn.toLowerCase().includes(q) ||
         c.fullNameAr.toLowerCase().includes(q) ||
         c.passportNumber.toLowerCase().includes(q) ||
         c.aproReference.toLowerCase().includes(q) ||
+        (c.nationalId && c.nationalId.toLowerCase().includes(q)) ||
         (c.idCardNumber && c.idCardNumber.toLowerCase().includes(q)) ||
+        (c.batchNumber && c.batchNumber.toLowerCase().includes(q)) ||
         c.occupation.toLowerCase().includes(q)
       ) {
         const link = isAssessor
@@ -81,10 +92,10 @@ export class SearchService {
       return results.slice(0, 15);
     }
 
-    // Search Centers (Only Super Admin / Country Account, or Center Admin own center)
-    const centers = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+    // Search Centers (Only Super/Global Admin, or Country Admin in country, or Center Admin own center)
     centers.forEach(c => {
       if (isCenterAdmin && userCenterId && c.id !== userCenterId) return;
+      if (isCountryAdmin && userCountryId && c.countryId !== userCountryId) return;
 
       if (
         c.nameEn.toLowerCase().includes(q) ||
@@ -103,10 +114,11 @@ export class SearchService {
       }
     });
 
-    // Search Users (Scoped to center for Center Admin)
+    // Search Users (Scoped to center for Center Admin, or country for Country Admin)
     const users = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
     users.forEach(u => {
       if (isCenterAdmin && userCenterId && u.centerId !== userCenterId) return;
+      if (isCountryAdmin && userCountryId && u.countryId !== userCountryId && (!u.centerId || !countryCenterIds.has(u.centerId))) return;
 
       if (
         u.name.toLowerCase().includes(q) ||
@@ -124,10 +136,11 @@ export class SearchService {
       }
     });
 
-    // Search Batches (Scoped to center for Center Admin)
+    // Search Batches (Scoped to center for Center Admin, or country for Country Admin)
     const batches = StorageService.get<Batch[]>(STORAGE_KEYS.BATCHES, []);
     batches.forEach(b => {
       if (isCenterAdmin && userCenterId && b.centerId !== userCenterId) return;
+      if (isCountryAdmin && userCountryId && (!b.centerId || !countryCenterIds.has(b.centerId))) return;
 
       if (
         b.batchNumber.toLowerCase().includes(q) ||
@@ -144,10 +157,11 @@ export class SearchService {
       }
     });
 
-    // Search Schedules (Scoped to center for Center Admin)
+    // Search Schedules (Scoped to center for Center Admin, or country for Country Admin)
     const schedules = StorageService.get<Schedule[]>(STORAGE_KEYS.SCHEDULES, []);
     schedules.forEach(s => {
       if (isCenterAdmin && userCenterId && s.centerId !== userCenterId) return;
+      if (isCountryAdmin && userCountryId && (!s.centerId || !countryCenterIds.has(s.centerId))) return;
 
       if (
         s.code.toLowerCase().includes(q) ||
@@ -165,10 +179,12 @@ export class SearchService {
       }
     });
 
-    // Search Countries (Skip for Center Admin)
+    // Search Countries (Global Admin sees all, Country Admin sees only their assigned country, skip for Center Admin)
     if (!isCenterAdmin) {
       const countries = StorageService.get<Country[]>(STORAGE_KEYS.COUNTRIES, []);
       countries.forEach(c => {
+        if (isCountryAdmin && userCountryId && c.id !== userCountryId) return;
+
         if (
           c.nameEn.toLowerCase().includes(q) ||
           c.nameAr.toLowerCase().includes(q) ||

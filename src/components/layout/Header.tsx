@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Menu, Search, Bell, Globe, ChevronDown, Check,
-  LogOut, Settings, User as UserIcon, Shield, Sparkles
+  LogOut, Settings, User as UserIcon, Shield, Sparkles, Camera, ShieldCheck
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -19,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
   onOpenSearch,
   onNavigate,
+  currentPath,
 }) => {
   const { language, isRTL, setLanguage, t } = useLanguage();
   const { user, logout, switchRole } = useAuth();
@@ -69,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Brand Tag in Header for small screens / context */}
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded bg-maroon-800 text-white flex items-center justify-center font-bold text-xs tracking-wider shadow-sm">
+          <div className="w-7 h-7 rounded bg-[#A43950] text-white flex items-center justify-center font-bold text-xs tracking-wider shadow-xs">
             360
           </div>
           <div className="hidden lg:block">
@@ -113,13 +114,13 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Language Switcher Pill */}
-        <div className="flex items-center border border-borderlight rounded-md p-0.5 bg-canvas-subtle/70 text-xs font-medium">
+        <div className="flex items-center border border-borderlight rounded-md p-0.5 bg-stone-50 text-xs font-medium">
           <button
             type="button"
             onClick={() => setLanguage('en')}
             className={`px-2.5 py-1 rounded transition-colors ${
               language === 'en'
-                ? 'bg-white text-maroon-900 shadow-soft font-semibold'
+                ? 'bg-white text-[#A43950] shadow-xs font-semibold'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
@@ -131,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setLanguage('ar')}
             className={`px-2.5 py-1 rounded transition-colors font-arabic ${
               language === 'ar'
-                ? 'bg-white text-maroon-900 shadow-soft font-semibold'
+                ? 'bg-white text-[#A43950] shadow-xs font-semibold'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
@@ -149,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 end-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-maroon-700 text-[10px] font-bold text-white ring-2 ring-white">
+              <span className="absolute top-1.5 end-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#A43950] text-[10px] font-bold text-white ring-2 ring-white">
                 {unreadCount}
               </span>
             )}
@@ -161,11 +162,11 @@ export const Header: React.FC<HeaderProps> = ({
                 isRTL ? 'start-0' : 'end-0'
               }`}
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-borderlight bg-canvas-subtle/50">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-borderlight bg-stone-50/70">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-stone-900">{t.header.notifications}</span>
                   {unreadCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-maroon-100 text-maroon-800">
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#FCE7EB] text-[#A43950]">
                       {unreadCount} new
                     </span>
                   )}
@@ -174,7 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     type="button"
                     onClick={markAllAsRead}
-                    className="text-[11px] text-maroon-800 hover:underline font-medium"
+                    className="text-[11px] text-[#A43950] hover:underline font-medium"
                   >
                     {t.header.markAllRead}
                   </button>
@@ -197,8 +198,8 @@ export const Header: React.FC<HeaderProps> = ({
                           onNavigate(item.link);
                         }
                       }}
-                      className={`p-3.5 hover:bg-canvas-base/70 cursor-pointer transition-colors ${
-                        !item.read ? 'bg-maroon-50/20' : ''
+                      className={`p-3.5 hover:bg-stone-50 cursor-pointer transition-colors ${
+                        !item.read ? 'bg-[#FDF2F4]/50' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -206,7 +207,7 @@ export const Header: React.FC<HeaderProps> = ({
                           {language === 'ar' ? item.titleAr : item.titleEn}
                         </p>
                         {!item.read && (
-                          <span className="w-2 h-2 rounded-full bg-maroon-700 shrink-0 mt-1" />
+                          <span className="w-2 h-2 rounded-full bg-[#A43950] shrink-0 mt-1" />
                         )}
                       </div>
                       <p className="text-xs text-stone-500 mt-1 leading-relaxed">
@@ -227,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setIsProfileOpen(prev => !prev)}
             className="flex items-center gap-2.5 p-1.5 rounded-md hover:bg-stone-100 transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-maroon-100 border border-maroon-200 text-maroon-800 font-bold text-xs flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-stone-100 border border-stone-200 text-stone-700 font-bold text-xs flex items-center justify-center shrink-0">
               {user?.name.charAt(0) || 'U'}
             </div>
             <div className="hidden sm:block text-start">
@@ -248,11 +249,11 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               {/* Profile Card Header */}
-              <div className="p-4 border-b border-borderlight bg-canvas-subtle/40">
+              <div className="p-4 border-b border-borderlight bg-stone-50/60">
                 <p className="text-xs font-bold text-stone-900 truncate">{user?.name}</p>
                 <p className="text-xs text-stone-500 truncate">{user?.email}</p>
-                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gold-50 border border-gold-200 text-gold-900 text-[10px] font-semibold">
-                  <Shield className="w-3 h-3 text-gold-700" />
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-stone-100 border border-stone-200 text-stone-800 text-[10px] font-semibold">
+                  <Shield className="w-3 h-3 text-[#A43950]" />
                   <span>{user?.role ? t.roles[user.role] : ''}</span>
                 </div>
               </div>
@@ -260,10 +261,10 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Demo Role Switcher Section */}
               <div className="p-3 border-b border-borderlight bg-stone-50/70">
                 <div className="flex items-center gap-1.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2">
-                  <Sparkles className="w-3 h-3 text-maroon-700" />
+                  <Sparkles className="w-3 h-3 text-[#A43950]" />
                   <span>Switch Role (Prototype Tool)</span>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1">
                   {rolesList.map(item => (
                     <button
                       key={item.role}
@@ -274,12 +275,12 @@ export const Header: React.FC<HeaderProps> = ({
                       }}
                       className={`flex items-center justify-between px-2 py-1 rounded text-xs transition-colors ${
                         user?.role === item.role
-                          ? 'bg-maroon-100 text-maroon-900 font-semibold'
+                          ? 'bg-[#FDF2F4] text-[#A43950] font-semibold'
                           : 'text-stone-600 hover:bg-stone-200/60'
                       }`}
                     >
                       <span>{item.label}</span>
-                      {user?.role === item.role && <Check className="w-3.5 h-3.5 text-maroon-800" />}
+                      {user?.role === item.role && <Check className="w-3.5 h-3.5 text-[#A43950]" />}
                     </button>
                   ))}
                 </div>
@@ -287,29 +288,33 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Menu Links */}
               <div className="p-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    onNavigate('/profile');
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-100 rounded-md transition-colors text-start"
-                >
-                  <UserIcon className="w-4 h-4 text-stone-400" />
-                  <span>{t.header.profile}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                    onNavigate('/settings');
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-100 rounded-md transition-colors text-start"
-                >
-                  <Settings className="w-4 h-4 text-stone-400" />
-                  <span>{t.header.accountSettings}</span>
-                </button>
-                <div className="my-1 border-t border-borderlight" />
+                {user?.role !== 'CENTER_ADMIN' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        onNavigate('/profile');
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-100 rounded-md transition-colors text-start"
+                    >
+                      <UserIcon className="w-4 h-4 text-stone-400" />
+                      <span>{t.header.profile}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        onNavigate('/settings');
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-100 rounded-md transition-colors text-start"
+                    >
+                      <Settings className="w-4 h-4 text-stone-400" />
+                      <span>{t.header.accountSettings}</span>
+                    </button>
+                    <div className="my-1 border-t border-borderlight" />
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => {

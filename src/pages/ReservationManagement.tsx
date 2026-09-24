@@ -691,7 +691,7 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
 
   const tabs = [
     { id: 'import', label: language === 'ar' ? 'استيراد الحجوزات والمعالجة' : 'Reservation Import & Validation' },
-    { id: 'preload', label: language === 'ar' ? `المرشحون المجهزون (${preloadedCandidates.length})` : `Preloaded Candidate Pool (${preloadedCandidates.length})` },
+    { id: 'preload', label: language === 'ar' ? `قائمة تعيين المرشحين (${preloadedCandidates.length})` : `Assign Candidate List (${preloadedCandidates.length})` },
   ];
 
   const currentPreviewItem = previewItems[previewIndex];
@@ -1137,26 +1137,17 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
             </div>
           </div>
 
-          {/* Preloaded Pool Table */}
+          {/* Assign Candidate List Table */}
           <div className="border border-[#E8D9D2] rounded-xl bg-white shadow-[0_1px_3px_rgba(63,48,48,0.03)] overflow-hidden">
-            <div className="p-3.5 border-b border-[#E8D9D2] bg-[#FFFCF8] flex items-center justify-between">
+            <div className="p-3.5 border-b border-[#E8D9D2] bg-white flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-bold text-[#3F3030] uppercase tracking-wider">
-                  {language === 'ar' ? 'سجل المرشحين المجهزين بالدفعات' : 'Preloaded Candidate Roster'}
+                  {language === 'ar' ? 'قائمة تعيين المرشحين بالدفعات' : 'Assign Candidate List'}
                 </h4>
                 <p className="text-[11px] text-[#806F6F] mt-0.5">
-                  {language === 'ar' ? 'المرشحون المجهزون بانتظار حضور يوم الاختبار والتقاط الصورة' : 'Preloaded candidates with assigned assessors awaiting test-day biometric photo enrollment.'}
+                  {language === 'ar' ? 'المرشحون المعينون للدفعات والمقيمين بانتظار يوم التقييم' : 'Assigned candidates with allocated assessors awaiting assessment.'}
                 </p>
               </div>
-
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onNavigate && onNavigate('/enrollment')}
-                leftIcon={<UserCheck className="w-3.5 h-3.5" />}
-              >
-                {language === 'ar' ? 'بدء التحقق وتسجيل الحضور' : 'Proceed to Enrollment'}
-              </Button>
             </div>
 
             <div className="overflow-x-auto">
@@ -1169,7 +1160,7 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                     <th className="py-2.5 px-3 text-start font-semibold">Occupation</th>
                     <th className="py-2.5 px-3 text-start font-semibold">Batch</th>
                     <th className="py-2.5 px-3 text-start font-semibold">Assigned Assessor</th>
-                    <th className="py-2.5 px-3 text-start font-semibold">Preload Status</th>
+                    <th className="py-2.5 px-3 text-start font-semibold">Status</th>
                     <th className="py-2.5 px-3 text-end font-semibold">Evaluation & Actions</th>
                   </tr>
                 </thead>
@@ -1177,7 +1168,7 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                   {preloadedCandidates.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-8 text-center text-xs text-[#806F6F]">
-                        {language === 'ar' ? 'لا يوجد مرشحون مجهزون حالياً.' : 'No preloaded candidates found in the pool.'}
+                        {language === 'ar' ? 'لا يوجد مرشحون في قائمة التعيين حالياً.' : 'No candidates found in the assign candidate list.'}
                       </td>
                     </tr>
                   ) : (
@@ -1185,10 +1176,9 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                       const isEnrolled = c.enrollmentStatus === 'ENROLLED' || c.status === 'ENROLLED' || c.status === 'IN_ASSESSMENT' || c.status === 'COMPLETED';
                       const b = batches.find(batch => batch.id === c.batchId);
                       return (
-                        <tr key={c.id} className="hover:bg-[#FFFCF8]/80 transition-colors">
+                        <tr key={c.id} className="hover:bg-stone-50/50 transition-colors">
                           <td className="py-2.5 px-3 font-semibold text-[#3F3030]">
                             {language === 'ar' ? c.fullNameAr : c.fullNameEn}
-                            <div className="text-[10px] text-[#806F6F] font-mono">{c.aproReference}</div>
                           </td>
                           <td className="py-2.5 px-3 font-mono font-bold text-[#7A2E3A]">{c.passportNumber}</td>
                           <td className="py-2.5 px-3 font-mono text-[#806F6F]">{c.bookingNo || c.reservationId || 'N/A'}</td>
@@ -1205,7 +1195,7 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                           </td>
                           <td className="py-2.5 px-3">
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FBF6E8] text-[#C9A24D] border border-[#E8D9D2]">
-                              PRELOADED
+                              ASSIGNED
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-end">
@@ -1229,18 +1219,10 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                                 <span className="hidden md:inline">Form L1</span>
                               </button>
 
-                              {isEnrolled ? (
+                              {isEnrolled && (
                                 <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled
                                 </span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => onNavigate && onNavigate(`/enrollment?passport=${c.passportNumber}&batchId=${c.batchId}`)}
-                                  className="px-2.5 py-1 rounded text-xs font-semibold text-white bg-[#7A2E3A] hover:bg-[#682430] transition-colors"
-                                >
-                                  {language === 'ar' ? 'تسجيل الآن' : 'Enroll Now'}
-                                </button>
                               )}
                             </div>
                           </td>

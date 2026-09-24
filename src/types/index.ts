@@ -1,5 +1,7 @@
 export type Role = 
+  | 'GLOBAL_ADMIN'
   | 'SUPER_ADMIN' 
+  | 'COUNTRY_ADMIN'
   | 'COUNTRY_ACCOUNT' 
   | 'CENTER_ADMIN' 
   | 'ASSESSOR' 
@@ -92,6 +94,7 @@ export interface Batch {
   startDate: string;
   endDate?: string;
   startTime?: string;
+  releaseTime?: string;
   startDateTime?: string;
   assessmentDate?: string;
   assessmentTime?: string;
@@ -102,6 +105,7 @@ export interface Batch {
 export type CandidateAssessmentStatus = 
   | 'REGISTERED' 
   | 'SCHEDULED' 
+  | 'CHECKED_IN'
   | 'ASSIGNED'
   | 'ENROLLED'
   | 'ENROLLMENT_VERIFY'
@@ -110,6 +114,9 @@ export type CandidateAssessmentStatus =
   | 'VERIFIED'
   | 'IN_ASSESSMENT'
   | 'IN_PROGRESS'
+  | 'PAUSED'
+  | 'PAUSED_PENDING_VERIFICATION'
+  | 'EXPELLED'
   | 'PRACTICAL_COMPLETED'
   | 'EVALUATION_PENDING'
   | 'EVALUATED' 
@@ -216,6 +223,7 @@ export interface Candidate {
   countryId: string;
   centerId: string;
   batchId: string;
+  batchNumber?: string;
   scheduleId?: string;
   reservationId?: string;
   enrollmentStatus?: 'NOT_ENROLLED' | 'ENROLLED' | 'REJECTED' | 'ENROLLMENT_VERIFY' | string;
@@ -235,6 +243,7 @@ export interface Candidate {
   practicalStatus?: 'NOT_STARTED' | 'PENDING' | 'TASK_ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | string;
   practicalPhoto1?: string;
   practicalPhoto2?: string;
+  practicalScore?: number;
   taskNumber?: number;
   practicalConfirmationDate?: string;
   practicalConfirmationTime?: string;
@@ -278,6 +287,12 @@ export interface Candidate {
   exitVerifiedBy?: string;
   exitNotes?: string;
   exitRecord?: CandidateExitRecord;
+  isPaused?: boolean;
+  pauseReason?: string;
+  isExpelled?: boolean;
+  expelledReason?: string;
+  expelledAt?: string;
+  expelledBy?: string;
 }
 
 export type TaskDifficulty = 'FOUNDATIONAL' | 'INTERMEDIATE' | 'ADVANCED' | 'Hard' | 'Moderate' | 'Easy';
@@ -658,6 +673,11 @@ export type AuditAction =
   | 'SUBMIT_EVALUATION'
   | 'VIEW_TASK'
   | 'AI_HELP_QUERY'
+  | 'VERIFY_PHOTO'
+  | 'APPROVE_PHOTO'
+  | 'EXPEL_CANDIDATE'
+  | 'PAUSE_CANDIDATE'
+  | 'UNPAUSE_CANDIDATE'
   | 'EXPORT'
   | 'PRINT';
 

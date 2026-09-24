@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShieldCheck, Download, Search, Filter, Eye, Printer, 
   Calendar, Monitor, Smartphone, Shield, Building2, User, 
-  CheckCircle2, XCircle, ArrowUpDown, RefreshCw, Layers
+  CheckCircle2, XCircle, ArrowUpDown, RefreshCw, Layers, Globe
 } from 'lucide-react';
-import { AuditLog, AuditAction, Role, Center } from '../types';
+import { AuditLog, AuditAction, Role, Center, Country } from '../types';
 import { AuditService } from '../services/auditService';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { useLanguage } from '../context/LanguageContext';
@@ -22,10 +22,14 @@ export const AuditLogsPage: React.FC = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
 
+  const isGlobalAdmin = user?.role === 'GLOBAL_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isCountryAdmin = user?.role === 'COUNTRY_ADMIN' || user?.role === 'COUNTRY_ACCOUNT';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
   const userCenterId = user?.centerId || 'ctr-sa-1';
+  const userCountryId = user?.countryId || 'cnt-sa';
 
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
@@ -34,6 +38,7 @@ export const AuditLogsPage: React.FC = () => {
   const [actionFilter, setActionFilter] = useState<string>('ALL');
   const [entityFilter, setEntityFilter] = useState<string>('ALL');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [countryFilter, setCountryFilter] = useState<string>('ALL');
   const [centerFilter, setCenterFilter] = useState<string>('ALL');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -44,17 +49,27 @@ export const AuditLogsPage: React.FC = () => {
   const pageSize = 8;
 
   const loadData = () => {
+    const loadedCountries = StorageService.get<Country[]>(STORAGE_KEYS.COUNTRIES, []);
+    const loadedCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+
+    const countryCenters = loadedCenters.filter(c => c.countryId === userCountryId);
+    const countryCenterIds = new Set(countryCenters.map(c => c.id));
+
     const allLogs = AuditService.getLogs();
     const filtered = isCenterAdmin 
       ? allLogs.filter(l => l.centerId === userCenterId || l.userId === user?.id)
+      : isCountryAdmin
+      ? allLogs.filter(l => l.countryId === userCountryId || (l.centerId && countryCenterIds.has(l.centerId)))
       : allLogs;
+
     setLogs(filtered);
-    setCenters(StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []));
+    setCountries(isCountryAdmin ? loadedCountries.filter(c => c.id === userCountryId) : loadedCountries);
+    setCenters(isCountryAdmin ? countryCenters : loadedCenters);
   };
 
   useEffect(() => {
     loadData();
-  }, [isCenterAdmin, userCenterId, user?.id]);
+  }, [isCenterAdmin, isCountryAdmin, userCenterId, userCountryId, user?.id]);
 
   const handleExportCsv = () => {
     if (filtered.length === 0) {
@@ -165,6 +180,13 @@ export const AuditLogsPage: React.FC = () => {
       const matchesAction = actionFilter === 'ALL' || l.action === actionFilter;
       const matchesEntity = entityFilter === 'ALL' || l.entity === entityFilter;
       const matchesRole = roleFilter === 'ALL' || l.role === roleFilter;
+
+      let matchesCountry = true;
+      if (countryFilter !== 'ALL') {
+        const countryCenterIds = new Set(centers.filter(c => c.countryId === countryFilter).map(c => c.id));
+        matchesCountry = l.countryId === countryFilter || (!!l.centerId && countryCenterIds.has(l.centerId));
+      }
+
       const matchesCenter = centerFilter === 'ALL' || l.centerId === centerFilter;
 
       let matchesDate = true;
@@ -179,9 +201,9 @@ export const AuditLogsPage: React.FC = () => {
         if (logTimestamp > toTimestamp) matchesDate = false;
       }
 
-      return matchesSearch && matchesAction && matchesEntity && matchesRole && matchesCenter && matchesDate;
+      return matchesSearch && matchesAction && matchesEntity && matchesRole && matchesCountry && matchesCenter && matchesDate;
     });
-  }, [logs, searchTerm, actionFilter, entityFilter, roleFilter, centerFilter, dateFrom, dateTo]);
+  }, [logs, searchTerm, actionFilter, entityFilter, roleFilter, countryFilter, centerFilter, dateFrom, dateTo, centers]);
 
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
@@ -190,6 +212,7 @@ export const AuditLogsPage: React.FC = () => {
     setActionFilter('ALL');
     setEntityFilter('ALL');
     setRoleFilter('ALL');
+    setCountryFilter('ALL');
     setCenterFilter('ALL');
     setDateFrom('');
     setDateTo('');
@@ -210,6 +233,33 @@ export const AuditLogsPage: React.FC = () => {
           </span>
         </div>
       ),
+    },
+    {
+      key: 'scope',
+      header: language === 'ar' ? 'الموقع الهرمي' : 'Hierarchy Scope',
+      render: l => {
+        const center = centers.find(c => c.id === l.centerId);
+        const country = countries.find(c => c.id === (l.countryId || center?.countryId));
+        if (!country && !center) {
+          return (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#806F6F] bg-stone-100 px-1.5 py-0.5 rounded">
+              <Globe className="w-3 h-3 text-[#7A2E3A]" /> Global
+            </span>
+          );
+        }
+        return (
+          <div className="text-[11px] leading-tight max-w-[150px] truncate" title={`${country?.nameEn || ''} > ${center?.nameEn || ''}`}>
+            <span className="font-semibold text-[#3F3030]">
+              {country?.flagEmoji} {country?.code || 'Global'}
+            </span>
+            {center && (
+              <span className="font-mono text-[#7A2E3A] block text-[10px]">
+                › {center.code}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'user',
@@ -454,14 +504,39 @@ export const AuditLogsPage: React.FC = () => {
                 className="w-full text-xs p-1.5 border border-[#E8D9D2] rounded-lg bg-white text-[#3F3030] focus:outline-none focus:border-[#7A2E3A]"
               >
                 <option value="ALL">{language === 'ar' ? 'جميع الأدوار' : 'All Roles'}</option>
+                <option value="GLOBAL_ADMIN">GLOBAL_ADMIN</option>
                 <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                <option value="COUNTRY_ADMIN">COUNTRY_ADMIN</option>
+                <option value="COUNTRY_ACCOUNT">COUNTRY_ACCOUNT</option>
                 <option value="CENTER_ADMIN">CENTER_ADMIN</option>
                 <option value="ASSESSOR">ASSESSOR</option>
                 <option value="SUPPORT_STAFF">SUPPORT_STAFF</option>
                 <option value="ORGANIZER">ORGANIZER</option>
-                <option value="COUNTRY_ACCOUNT">COUNTRY_ACCOUNT</option>
+                <option value="CBT_TEST_SUPPORT">CBT_TEST_SUPPORT</option>
               </select>
             </div>
+
+            {!isCenterAdmin && !isCountryAdmin && (
+              <div>
+                <label className="block text-[11px] font-semibold text-[#806F6F] mb-1">
+                  {language === 'ar' ? 'الدولة السيادية' : 'Sovereign Country'}
+                </label>
+                <select
+                  value={countryFilter}
+                  onChange={e => {
+                    setCountryFilter(e.target.value);
+                    setCenterFilter('ALL');
+                    setCurrentPage(1);
+                  }}
+                  className="w-full text-xs p-1.5 border border-[#E8D9D2] rounded-lg bg-white text-[#3F3030] focus:outline-none focus:border-[#7A2E3A]"
+                >
+                  <option value="ALL">{language === 'ar' ? 'جميع الدول' : 'All Countries'}</option>
+                  {countries.map(c => (
+                    <option key={c.id} value={c.id}>{c.flagEmoji} {language === 'ar' ? c.nameAr : c.nameEn} ({c.code})</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {!isCenterAdmin && (
               <div>
@@ -477,7 +552,7 @@ export const AuditLogsPage: React.FC = () => {
                   className="w-full text-xs p-1.5 border border-[#E8D9D2] rounded-lg bg-white text-[#3F3030] focus:outline-none focus:border-[#7A2E3A]"
                 >
                   <option value="ALL">{language === 'ar' ? 'جميع المراكز' : 'All Centers'}</option>
-                  {centers.map(c => (
+                  {(countryFilter === 'ALL' ? centers : centers.filter(c => c.countryId === countryFilter)).map(c => (
                     <option key={c.id} value={c.id}>{c.code} — {c.nameEn}</option>
                   ))}
                 </select>
@@ -558,6 +633,29 @@ export const AuditLogsPage: React.FC = () => {
               <Badge variant={getActionBadgeVariant(selectedLog.action)} size="md">
                 {selectedLog.entity}
               </Badge>
+            </div>
+
+            {/* Hierarchical Provenance */}
+            <div className="p-3 bg-[#FFFCF8] border border-[#E8D9D2] rounded-xl space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A2E3A] block">
+                {language === 'ar' ? 'الموقع الهرمي للحدث ومستوى الرقابة' : 'Hierarchical Governance Provenance'}
+              </span>
+              <div className="flex items-center flex-wrap gap-2 text-xs text-[#3F3030]">
+                <span className="bg-white px-2 py-0.5 rounded border border-[#E8D9D2] font-semibold">Global Program</span>
+                <span>›</span>
+                <span className="bg-white px-2 py-0.5 rounded border border-[#E8D9D2] font-semibold">
+                  {countries.find(c => c.id === selectedLog.countryId || c.id === centers.find(ctr => ctr.id === selectedLog.centerId)?.countryId)?.flagEmoji || '🌐'}{' '}
+                  {countries.find(c => c.id === selectedLog.countryId || c.id === centers.find(ctr => ctr.id === selectedLog.centerId)?.countryId)?.nameEn || 'Universal Scope'}
+                </span>
+                {selectedLog.centerId && (
+                  <>
+                    <span>›</span>
+                    <span className="bg-white px-2 py-0.5 rounded border border-[#E8D9D2] font-mono font-bold text-[#7A2E3A]">
+                      {centers.find(c => c.id === selectedLog.centerId)?.nameEn || selectedLog.centerId} ({centers.find(c => c.id === selectedLog.centerId)?.code || ''})
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Actor & Authorization Block */}

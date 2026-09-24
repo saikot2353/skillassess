@@ -377,7 +377,7 @@ export const AssessorEvaluationPage: React.FC<AssessorEvaluationPageProps> = ({ 
           >
             {candidates.map(cand => (
               <option key={cand.id} value={cand.id}>
-                {isRTL ? cand.fullNameAr : cand.fullNameEn} ({cand.aproReference} - {cand.status})
+                {isRTL ? cand.fullNameAr : cand.fullNameEn} ({cand.passportNumber} - {cand.status})
               </option>
             ))}
           </select>

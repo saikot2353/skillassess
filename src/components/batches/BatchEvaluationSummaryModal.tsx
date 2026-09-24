@@ -324,7 +324,7 @@ export const BatchEvaluationSummaryModal: React.FC<BatchEvaluationSummaryModalPr
                               {language === 'ar' ? cand.fullNameAr || cand.fullNameEn : cand.fullNameEn}
                             </div>
                             <div className="text-[10px] text-stone-500 font-mono">
-                              ID: {cand.nationalId || cand.aproReference || cand.id}
+                              ID: {cand.nationalId || cand.id}
                             </div>
                           </td>
 

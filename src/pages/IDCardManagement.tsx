@@ -308,7 +308,7 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder={language === 'ar' ? 'بحث بالاسم، رقم APRO، الجواز أو رقم البطاقة...' : 'Search by name, APRO #, passport, card serial, trade...'}
+                placeholder={language === 'ar' ? 'بحث بالاسم، الجواز أو رقم البطاقة...' : 'Search by name, passport, card serial, trade...'}
                 className="w-full ps-9 pe-3 py-1.5 text-xs bg-[#FFFCF8] border border-[#E8D9D2] rounded-lg text-[#3F3030] placeholder-[#806F6F]/60 focus:outline-none focus:border-[#7A2E3A]"
               />
             </div>
@@ -346,7 +346,6 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                 <thead className="bg-[#F8ECEE] text-[#7A2E3A] border-b border-[#E8D9D2]">
                   <tr>
                     <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'المرشح' : 'Candidate'}</th>
-                    <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'رقم APRO' : 'APRO Reference'}</th>
                     <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'رقم الجواز' : 'Passport Number'}</th>
                     <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'المهنة' : 'Occupation'}</th>
                     <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'المركز' : 'Center'}</th>
@@ -376,7 +375,6 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                             </div>
                           </div>
                         </td>
-                        <td className="py-2.5 px-3 font-mono font-bold text-[#7A2E3A]">{cand.aproReference}</td>
                         <td className="py-2.5 px-3 font-mono text-[#806F6F]">{cand.passportNumber}</td>
                         <td className="py-2.5 px-3 text-[#3F3030] font-medium">{cand.occupation}</td>
                         <td className="py-2.5 px-3 text-[#806F6F]">
@@ -592,18 +590,6 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                       className="w-4 h-4 text-[#7A2E3A] rounded border-[#E8D9D2] focus:ring-[#7A2E3A]"
                     />
                   </label>
-
-                  <label className="flex items-center justify-between cursor-pointer py-1">
-                    <span className="text-[#3F3030] font-medium">
-                      {language === 'ar' ? 'إظهار المعرّف المرجعي APRO' : 'Display Unique APRO Credential Serial'}
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={config.showApro}
-                      onChange={e => setConfig({ ...config, showApro: e.target.checked })}
-                      className="w-4 h-4 text-[#7A2E3A] rounded border-[#E8D9D2] focus:ring-[#7A2E3A]"
-                    />
-                  </label>
                 </div>
 
                 <div className="pt-3">
@@ -699,12 +685,6 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                   </div>
 
                   <div className="flex items-center gap-4 text-[9px] font-mono text-white/90 pt-0.5">
-                    {config.showApro && (
-                      <div>
-                        <span className="text-[7px] text-white/60 block">APRO ID:</span>
-                        <span className="font-bold text-amber-300">{candidates[0]?.aproReference || 'APRO-SA-92812'}</span>
-                      </div>
-                    )}
                     {config.showPassport && (
                       <div>
                         <span className="text-[7px] text-white/60 block">PASSPORT:</span>
@@ -809,12 +789,6 @@ export const IDCardManagementPage: React.FC<IDCardManagementPageProps> = ({ onNa
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-[9px] font-mono text-white/90 pt-0.5">
-                      {config.showApro && (
-                        <div>
-                          <span className="text-[7px] text-white/60 block">APRO ID:</span>
-                          <span className="font-bold text-amber-300">{previewCandidate.aproReference}</span>
-                        </div>
-                      )}
                       {config.showPassport && (
                         <div>
                           <span className="text-[7px] text-white/60 block">PASSPORT:</span>

@@ -297,7 +297,6 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
           >
             {r.candidateName || r.candidateId}
           </button>
-          <span className="font-mono text-[11px] text-[#806F6F]">{r.aproReference || '—'}</span>
         </div>
       ),
     },
@@ -499,7 +498,7 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder={language === 'ar' ? 'بحث بالاسم، رقم APRO أو المهنة...' : 'Search candidate, APRO #, occupation...'}
+            placeholder={language === 'ar' ? 'بحث بالاسم أو المهنة...' : 'Search candidate, occupation...'}
             className="w-full text-xs sm:text-sm bg-white border border-[#E8D9D2] rounded-lg py-1.5 ps-9 pe-3 focus:outline-none focus:border-[#7A2E3A] focus:ring-1 focus:ring-[#7A2E3A]"
           />
         </div>
@@ -617,7 +616,7 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="font-bold text-sm text-[#3F3030] block">{correctingResult.candidateName}</span>
-                  <span className="font-mono text-xs text-[#806F6F]">{correctingResult.aproReference} • {correctingResult.occupation}</span>
+                  <span className="text-xs text-[#806F6F]">{correctingResult.occupation}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-[#806F6F]">Current Total: <span className="font-bold text-[#7A2E3A]">{correctingResult.score}%</span></span>
@@ -751,7 +750,6 @@ export const ResultsPage: React.FC<ResultsProps> = ({ onNavigate }) => {
               <div className="py-2 border-y border-[#C9A24D]/30">
                 <span className="text-xs text-[#806F6F] block">This is to officially certify that</span>
                 <span className="text-lg font-bold text-[#7A2E3A] block my-0.5">{viewingResult.candidateName}</span>
-                <span className="text-xs font-mono text-[#806F6F]">APRO Ref: {viewingResult.aproReference}</span>
               </div>
 
               <div className="text-xs text-[#3F3030] space-y-0.5">

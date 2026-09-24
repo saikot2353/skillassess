@@ -27,26 +27,26 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={generatedId} className="block text-xs font-semibold text-[#3F3030] mb-1.5">
+        <label htmlFor={generatedId} className="block text-xs font-semibold text-stone-800 mb-1.5">
           {label}
-          {showRequiredMark && <span className="text-[#7A2E3A] ms-0.5">*</span>}
+          {showRequiredMark && <span className="text-[#A43950] ms-0.5">*</span>}
         </label>
       )}
       <div className="relative flex items-center">
         {leftIcon && (
-          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-[#806F6F]">
+          <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-stone-400">
             {leftIcon}
           </div>
         )}
         <input
           id={generatedId}
           required={required}
-          className={`w-full text-xs sm:text-sm bg-[#FFFFFF] text-[#3F3030] border rounded-lg py-2.5 px-3.5 transition-colors placeholder:text-[#A89595] focus:outline-none focus:ring-1 ${
+          className={`w-full text-xs sm:text-sm bg-[#FFFFFF] text-stone-800 border rounded-lg py-2.5 px-3.5 transition-colors placeholder:text-stone-400 focus:outline-none focus:ring-2 ${
             leftIcon ? 'ps-10' : ''
           } ${rightIcon ? 'pe-10' : ''} ${
             error
               ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/15'
-              : 'border-[#E8D9D2] focus:border-[#7A2E3A] focus:ring-[#7A2E3A]'
+              : 'border-[#E5E7EB] focus:border-[#A43950] focus:ring-[#A43950]/20 active:border-[#A43950]'
           } ${className}`}
           {...props}
         />

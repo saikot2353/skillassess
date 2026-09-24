@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { storageService, STORAGE_KEYS } from '../../services/storageService';
-import { Candidate, Schedule, PracticalTask, Notification } from '../../types';
+import { SecurityService } from '../../services/securityService';
+import { Candidate, Schedule, PracticalTask, Notification, Batch } from '../../types';
 import {
   Users,
   UserCheck,
@@ -21,7 +22,8 @@ import {
   ExternalLink,
   Sparkles,
   Info,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 
@@ -36,6 +38,7 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [tasks, setTasks] = useState<PracticalTask[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showBriefingModal, setShowBriefingModal] = useState<boolean>(false);
@@ -48,6 +51,10 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
       user?.role === 'SUPER_ADMIN' || c.assessorId === user?.id || (user?.role === 'ASSESSOR' && !c.assessorId && c.centerId === user?.centerId)
     );
     setCandidates(assessorCandidates);
+
+    // Load batches for release time tracking
+    const allBatches = storageService.get<Batch[]>(STORAGE_KEYS.BATCHES, []);
+    setBatches(allBatches);
 
     // Load schedules
     const allSchedules = storageService.get<Schedule[]>(STORAGE_KEYS.SCHEDULES, []);
@@ -80,6 +87,8 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
   };
 
   // KPIs
+  const currentBatch = batches.find(b => b.centerId === user?.centerId && b.status === 'ACTIVE') || batches[0] || null;
+  const isAssignmentReleased = SecurityService.isBatchReleased(currentBatch);
   const totalAssigned = candidates.length;
   const verifiedCount = candidates.filter(c => 
     c.status === 'VERIFIED' || c.status === 'IN_PROGRESS' || c.status === 'PRACTICAL_COMPLETED' || c.status === 'EVALUATION_PENDING' || c.status === 'LOCKED' || c.status === 'COMPLETED'
@@ -132,18 +141,17 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
   return (
     <div className="space-y-6 pb-12">
       {/* Assessor Header & Greeting Banner */}
-      <div className="bg-gradient-to-r from-[#5C1D24] via-[#7A2E3A] to-[#963E4B] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-96 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#C9A24D]/20 via-transparent to-transparent pointer-events-none" />
+      <div className="bg-white rounded-2xl p-6 border border-borderlight shadow-soft relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium text-[#F8ECEE] mb-2 border border-white/15">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#C9A24D]" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-50 text-xs font-medium text-stone-700 mb-2 border border-stone-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#A43950]" />
               <span>{isRTL ? 'بوابة المقيم المعتمد — الجلسة النشطة' : 'Certified Assessor Portal — Active Duty'}</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-stone-900">
               {isRTL ? `مرحباً، ${user?.name || 'المقيم'}` : `Welcome, ${user?.name || 'Assessor'}`}
             </h1>
-            <p className="text-sm text-[#F8ECEE]/80 mt-1 max-w-2xl">
+            <p className="text-sm text-stone-500 mt-1 max-w-2xl">
               {isRTL
                 ? 'مركز الرياض للتقييم المهني (مركز #1) • محطة الورشة 04 • يمكنك إدارة تقييماتك اليومية والتحقق من المرشحين ورصد الدرجات.'
                 : 'Riyadh Vocational Assessment Center (#1) • Station Bay 04 • Manage today’s roster, verify candidates, record evidence, and seal evaluations.'}
@@ -152,14 +160,14 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowBriefingModal(true)}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+              className="px-4 py-2.5 rounded-xl bg-white hover:bg-stone-50 active:bg-stone-100 border border-stone-200 text-stone-700 text-sm font-medium transition-colors flex items-center gap-2 shadow-xs"
             >
-              <Info className="w-4 h-4 text-[#C9A24D]" />
+              <Info className="w-4 h-4 text-stone-400" />
               <span>{isRTL ? 'إحاطة الجاهزية اليومية' : 'Shift Briefing'}</span>
             </button>
             <button
               onClick={() => onNavigate?.('/assessor/candidate-verification')}
-              className="px-4 py-2.5 rounded-xl bg-[#C9A24D] hover:bg-[#B38F3E] text-[#3F3030] text-sm font-bold transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"
+              className="px-4 py-2.5 rounded-xl bg-[#A43950] hover:bg-[#8E2F43] active:bg-[#7D283A] text-white text-sm font-bold transition-colors flex items-center gap-2 shadow-xs"
             >
               <UserCheck className="w-4 h-4" />
               <span>{isRTL ? 'التحقق السريع من الهوية' : 'Quick Verify'}</span>
@@ -174,19 +182,36 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
         <div className="bg-white rounded-xl p-5 border border-[#E8D9D2] shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              {isRTL ? 'إجمالي المرشحين' : 'Today Assigned'}
+              {isRTL ? 'المرشحون المكلفون' : 'Candidates Assigned'}
             </span>
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
               <Users className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-[#3F3030]">{totalAssigned}</span>
-            <span className="text-xs text-gray-500">{isRTL ? 'مرشح' : 'candidates'}</span>
+            {isAssignmentReleased ? (
+              <>
+                <span className="text-3xl font-bold text-[#3F3030]">{totalAssigned}</span>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  Candidates Assigned: {totalAssigned}
+                </span>
+              </>
+            ) : (
+              <div>
+                <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 block">
+                  🔒 Sealed until {currentBatch?.releaseTime || '09:45 AM'}
+                </span>
+                <span className="text-[10px] text-gray-500 block mt-1">Concealed under blind anti-bias rules</span>
+              </div>
+            )}
           </div>
           <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-600">
-            <span>{isRTL ? 'موزعين على الفترات' : 'Scheduled sessions'}</span>
-            <span className="font-semibold text-blue-600">{schedules.length} {isRTL ? 'جلسات' : 'slots'}</span>
+            <span>{isRTL ? 'حالة التحرير' : 'Release Status'}</span>
+            <span className="font-semibold text-blue-600 font-mono text-[11px]">
+              {isAssignmentReleased 
+                ? `Released (${currentBatch?.releaseTime || '09:45 AM'})` 
+                : `Locks until ${currentBatch?.releaseTime || '09:45 AM'}`}
+            </span>
           </div>
         </div>
 
@@ -369,7 +394,7 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
                               {isRTL ? cand.fullNameAr : cand.fullNameEn}
                             </div>
                             <div className="text-xs text-gray-500 font-mono mt-0.5">
-                              {cand.aproReference} • {cand.passportNumber}
+                              {cand.passportNumber}
                             </div>
                           </div>
                         </div>
@@ -465,7 +490,7 @@ export const AssessorDashboard: React.FC<AssessorDashboardProps> = ({ onNavigate
                       {isRTL ? 'التحقق من جواز وهوية المرشح' : 'Verify Candidate Identity'}
                     </div>
                     <div className="text-[11px] text-gray-500">
-                      {isRTL ? 'مسح الجواز أو إدخال رقم APRO' : 'Passport & biometric match'}
+                      {isRTL ? 'مسح الجواز أو التحقق البيومتري' : 'Passport & biometric match'}
                     </div>
                   </div>
                 </div>

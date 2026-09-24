@@ -137,7 +137,7 @@ export const AssessorPracticalTask: React.FC<AssessorPracticalTaskProps> = ({ on
             >
               {candidates.map(cand => (
                 <option key={cand.id} value={cand.id}>
-                  {isRTL ? cand.fullNameAr : cand.fullNameEn} ({cand.aproReference} - {cand.occupation})
+                  {isRTL ? cand.fullNameAr : cand.fullNameEn} ({cand.passportNumber} - {cand.occupation})
                 </option>
               ))}
             </select>

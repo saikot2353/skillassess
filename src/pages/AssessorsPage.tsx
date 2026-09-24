@@ -19,6 +19,7 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
 import { User, Schedule, Candidate, AssessorLottery, Center } from '../types';
+import { AssessorAnalyticsView } from '../components/assessors/AssessorAnalyticsView';
 
 export interface AssessorsPageProps {
   onNavigate?: (path: string) => void;
@@ -117,7 +118,7 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
 
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['list', 'schedule', 'lottery'].includes(tabParam)) {
+    if (tabParam && ['list', 'schedule', 'lottery', 'analytics'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [selectedCenterId, user?.centerId]);
@@ -297,20 +298,24 @@ Portal URL: ${window.location.origin}`;
     });
   }, [assessors, searchTerm, statusFilter]);
 
+  const isCenterAdminRole = user?.role === 'CENTER_ADMIN';
+
   const tabs = [
-    { id: 'list', label: language === 'ar' ? `المقيمون المعتمدون (${assessors.length})` : `Assessor Roster (${assessors.length})` },
-    { id: 'schedule', label: language === 'ar' ? 'جدول توزيع المقيمين' : 'Assessor Schedule' },
-    { id: 'lottery', label: language === 'ar' ? 'قرعة المقيمين والمرشحين' : 'Candidate-Assessor Lottery' },
+    { id: 'list', label: language === 'ar' ? `قائمة المقيمين (${assessors.length})` : `Assessor List (${assessors.length})` },
+    ...(!isCenterAdminRole ? [
+      { id: 'schedule', label: language === 'ar' ? 'جدول توزيع المقيمين' : 'Assessor Schedule' },
+      { id: 'lottery', label: language === 'ar' ? 'قرعة المقيمين والمرشحين' : 'Candidate-Assessor Lottery' },
+    ] : []),
+    { id: 'analytics', label: language === 'ar' ? 'تحليلات الأداء وأنماط الدرجات' : 'Performance & Mark Analytics' },
   ];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
       <PageHeader
-        title={language === 'ar' ? 'إدارة المقيمين والجداول' : 'Assessor Management & Rostering'}
-        subtitle={language === 'ar' ? 'إدارة حسابات المقيمين، مواعيد التقييم، ومتابعة حالة تحرير قرعة التوزيع العشوائي' : 'Manage accredited assessors, inspect scheduling allocations, and monitor blind lottery pairing release.'}
+        title={language === 'ar' ? 'قائمة المقيمين' : 'Assessor List'}
         breadcrumbs={[
           { label: t.nav.dashboard, href: '/dashboard' },
-          { label: language === 'ar' ? 'المقيمون' : 'Assessors' },
+          { label: language === 'ar' ? 'قائمة المقيمين' : 'Assessor List' },
         ]}
         actions={
           <Button
@@ -609,6 +614,14 @@ Portal URL: ${window.location.origin}`;
             </table>
           </div>
         </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <AssessorAnalyticsView 
+          assessors={assessors} 
+          candidates={candidates} 
+          centerId={userCenterId} 
+        />
       )}
 
       {/* CREATE ASSESSOR MODAL */}

@@ -252,11 +252,11 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-canvas-base">
+    <div className="min-h-screen flex flex-col justify-between bg-white">
       {/* Top bar with logo and language switch */}
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-md bg-maroon-800 text-white flex items-center justify-center font-bold text-xs tracking-wider shadow-sm">
+          <div className="w-8 h-8 rounded-md bg-[#A43950] text-white flex items-center justify-center font-bold text-xs tracking-wider shadow-xs">
             360
           </div>
           <div>
@@ -270,13 +270,13 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
         </div>
 
         {/* Language switch button */}
-        <div className="flex items-center border border-borderlight rounded-md p-0.5 bg-white text-xs font-medium shadow-soft">
+        <div className="flex items-center border border-borderlight rounded-md p-0.5 bg-white text-xs font-medium shadow-2xs">
           <button
             type="button"
             onClick={() => setLanguage('en')}
             className={`px-2.5 py-1 rounded transition-colors ${
               language === 'en'
-                ? 'bg-maroon-50 text-maroon-900 font-semibold border border-maroon-200'
+                ? 'bg-[#FDF2F4] text-[#A43950] font-semibold border border-[#A43950]/30'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
@@ -288,7 +288,7 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
             onClick={() => setLanguage('ar')}
             className={`px-2.5 py-1 rounded transition-colors font-arabic ${
               language === 'ar'
-                ? 'bg-maroon-50 text-maroon-900 font-semibold border border-maroon-200'
+                ? 'bg-[#FDF2F4] text-[#A43950] font-semibold border border-[#A43950]/30'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
@@ -358,14 +358,14 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
                     type="checkbox"
                     checked={rememberMe}
                     onChange={e => setRememberMe(e.target.checked)}
-                    className="rounded border-borderlight text-[#7A2E3A] focus:ring-[#7A2E3A]"
+                    className="rounded border-borderlight text-[#A43950] focus:ring-[#A43950]"
                   />
                   <span>{t.auth.rememberMe}</span>
                 </label>
                 <button 
                   type="button" 
                   onClick={() => setIsForgotOpen(true)}
-                  className="text-[#7A2E3A] hover:underline"
+                  className="text-[#A43950] hover:underline font-medium"
                 >
                   {t.auth.forgotPassword}
                 </button>
@@ -377,7 +377,7 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
                   variant="primary"
                   size="md"
                   isLoading={isLoading}
-                  className="w-full text-sm font-semibold bg-[#7A2E3A] hover:bg-[#682430] text-white"
+                  className="w-full text-sm font-semibold bg-[#A43950] hover:bg-[#8E2F43] active:bg-[#7D283A] text-white"
                   rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
                   {t.auth.loginButton}
@@ -421,7 +421,7 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
                 onClick={() => setSelectedHub('BD')}
                 className={`py-1 rounded text-center transition-all ${
                   selectedHub === 'BD'
-                    ? 'bg-white text-maroon-900 font-bold shadow-xs border border-maroon-200'
+                    ? 'bg-white text-[#A43950] font-bold shadow-xs border border-[#A43950]/30'
                     : 'hover:text-stone-900'
                 }`}
               >
@@ -432,7 +432,7 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
                 onClick={() => setSelectedHub('SA')}
                 className={`py-1 rounded text-center transition-all ${
                   selectedHub === 'SA'
-                    ? 'bg-white text-maroon-900 font-bold shadow-xs border border-maroon-200'
+                    ? 'bg-white text-[#A43950] font-bold shadow-xs border border-[#A43950]/30'
                     : 'hover:text-stone-900'
                 }`}
               >
@@ -443,7 +443,7 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
                 onClick={() => setSelectedHub('AE')}
                 className={`py-1 rounded text-center transition-all ${
                   selectedHub === 'AE'
-                    ? 'bg-white text-maroon-900 font-bold shadow-xs border border-maroon-200'
+                    ? 'bg-white text-[#A43950] font-bold shadow-xs border border-[#A43950]/30'
                     : 'hover:text-stone-900'
                 }`}
               >
@@ -454,7 +454,7 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
                 onClick={() => setSelectedHub('GLOBAL')}
                 className={`py-1 rounded text-center transition-all ${
                   selectedHub === 'GLOBAL'
-                    ? 'bg-white text-maroon-900 font-bold shadow-xs border border-maroon-200'
+                    ? 'bg-white text-[#A43950] font-bold shadow-xs border border-[#A43950]/30'
                     : 'hover:text-stone-900'
                 }`}
               >
@@ -474,13 +474,13 @@ export const Login: React.FC<{ onNavigate: (path: string) => void }> = ({ onNavi
                       onClick={() => handleSelectDemoAccount(acc)}
                       className={`w-full text-start p-3 rounded-md border transition-all text-xs ${
                         isSelected
-                          ? 'bg-[#F8ECEE] border-[#7A2E3A] ring-1 ring-[#7A2E3A]'
+                          ? 'bg-[#FDF2F4] border-[#A43950] ring-1 ring-[#A43950]'
                           : 'bg-white border-borderlight hover:bg-stone-50 hover:border-stone-300'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-semibold text-stone-900">{acc.label}</span>
-                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#7A2E3A]" />}
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#A43950]" />}
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-stone-500 font-mono truncate">
                         <span>{acc.email}</span>

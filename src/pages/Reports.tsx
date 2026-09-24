@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, Download, Printer, Filter, Calendar, Building2, Globe2, 
-  CheckCircle2, XCircle, TrendingUp, Award, Users, BarChart3, ChevronDown
+  CheckCircle2, XCircle, TrendingUp, Award, Users, BarChart3, ChevronDown, Eye
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
@@ -27,7 +27,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
   const userCountryId = user?.countryId || 'cnt-sa';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
   const isCenterScoped = isCenterAdmin || user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
-  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
+  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT' || user?.role === 'COUNTRY_ADMIN';
   const isAssessor = user?.role === 'ASSESSOR';
 
   const [activeTab, setActiveTab] = useState<string>('daily');
@@ -699,7 +699,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
                     <th className="py-2.5 px-3 font-semibold text-center">{language === 'ar' ? 'راسب' : 'Failed'}</th>
                     <th className="py-2.5 px-3 font-semibold text-center">{language === 'ar' ? 'نسبة النجاح' : 'Pass Rate'}</th>
                     <th className="py-2.5 px-3 font-semibold text-center">{language === 'ar' ? 'متوسط الدرجات' : 'Mean Score'}</th>
-                    <th className="py-2.5 px-3 font-semibold text-end">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                    <th className="py-2.5 px-3 font-semibold text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                    <th className="py-2.5 px-3 font-semibold text-end">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E8D9D2]">
@@ -708,7 +709,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
                       <td className="py-2.5 px-3 font-bold text-[#3F3030]">
                         <button
                           onClick={() => onNavigate?.(`/centers?view=details&id=${c.centerId}`)}
-                          className="hover:text-[#7A2E3A] hover:underline text-start"
+                          className="hover:text-[#A43950] hover:underline text-start"
                         >
                           {c.centerName}
                         </button>
@@ -719,15 +720,26 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
                       <td className="py-2.5 px-3 text-center font-mono font-bold text-emerald-700">{c.passed}</td>
                       <td className="py-2.5 px-3 text-center font-mono font-bold text-rose-700">{c.failed}</td>
                       <td className="py-2.5 px-3 text-center">
-                        <span className="inline-block px-2 py-0.5 rounded-full font-mono text-[11px] font-bold bg-[#FBF6E8] text-[#C9A24D] border border-[#C9A24D]/30">
+                        <span className="inline-block px-2 py-0.5 rounded-full font-mono text-[11px] font-bold bg-[#FBF6E8] text-[#946E20] border border-[#D4AF37]/30">
                           {c.passRate}%
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-center font-mono text-[#3F3030]">{c.avgScore}%</td>
-                      <td className="py-2.5 px-3 text-end">
+                      <td className="py-2.5 px-3 text-center">
                         <Badge variant={c.status === 'ACTIVE' ? 'success' : 'danger'} size="sm">
                           {c.status}
                         </Badge>
+                      </td>
+                      <td className="py-2.5 px-3 text-end">
+                        <Button
+                          variant="primary"
+                          size="xs"
+                          onClick={() => onNavigate?.(`/centers?view=details&id=${c.centerId}`)}
+                          leftIcon={<Eye className="w-3.5 h-3.5" />}
+                          title={language === 'ar' ? 'عرض تفاصيل المركز' : 'View Center Details'}
+                        >
+                          {language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
+                        </Button>
                       </td>
                     </tr>
                   ))}

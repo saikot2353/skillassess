@@ -37,6 +37,7 @@ import { CandidatePhotosPage } from './pages/CandidatePhotos';
 import { AssessorsPage } from './pages/AssessorsPage';
 import { SupportStaffPage } from './pages/SupportStaffPage';
 import { AssessmentMonitoringPage } from './pages/AssessmentMonitoringPage';
+import { PhotoVerificationQueuePage } from './pages/PhotoVerificationQueuePage';
 
 // Phase 04 Assessor Pages
 import { AssessorDashboard } from './pages/assessor/AssessorDashboard';
@@ -81,6 +82,7 @@ const RouterContent: React.FC = () => {
     // Strip query parameters for routing component match if needed, but preserve state
     window.history.pushState({}, '', newPath);
     setCurrentPath(newPath.split('?')[0]);
+    window.dispatchEvent(new Event('popstate'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -111,8 +113,8 @@ const RouterContent: React.FC = () => {
 
       case '/centers':
         return (
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT']} onNavigate={navigate}>
-            <Centers onNavigate={navigate} />
+          <ProtectedRoute allowedRoles={['GLOBAL_ADMIN', 'SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'COUNTRY_ADMIN', 'CENTER_ADMIN']} onNavigate={navigate}>
+            <Centers key={currentPath + (window.location.search || '')} onNavigate={navigate} />
           </ProtectedRoute>
         );
 
@@ -223,6 +225,14 @@ const RouterContent: React.FC = () => {
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN']} onNavigate={navigate}>
             <CandidatePhotosPage onNavigate={navigate} />
+          </ProtectedRoute>
+        );
+
+      case '/photo-verification-queue':
+      case '/photo-queue':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'GLOBAL_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+            <PhotoVerificationQueuePage onNavigate={navigate} />
           </ProtectedRoute>
         );
 

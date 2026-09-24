@@ -4,8 +4,8 @@ import {
   Layers, UserCheck, ClipboardCheck, BookOpen, Shuffle, 
   Award, Activity, MessageSquareWarning, ShieldAlert, Settings2,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X,
-  FileText, CreditCard, Sliders, Shield, UserCircle,
-  Bell, Sparkles, Wrench, CheckCircle2
+  FileText, CreditCard, Sliders, Shield, ShieldCheck, Camera, UserCircle,
+  Bell, Sparkles, Wrench, CheckCircle2, BarChart3
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -80,45 +80,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'countries',
       labelKey: 'countryManagement',
+      path: '/countries',
       icon: Globe2,
       allowedRoles: ['SUPER_ADMIN'],
-      subItems: [
-        { id: 'all-countries', path: '/countries', labelKey: 'allCountries' },
-        { id: 'create-country', path: '/countries?action=create', labelKey: 'createCountry' },
-        { id: 'country-details', path: '/countries?view=details', labelKey: 'countryDetails' },
-      ],
     },
     {
       id: 'centers',
       labelKey: 'centerManagement',
+      path: '/centers',
       icon: Building2,
-      allowedRoles: ['SUPER_ADMIN', 'COUNTRY_ACCOUNT'],
-      subItems: [
-        { id: 'all-centers', path: '/centers', labelKey: 'allCenters' },
-        { id: 'create-center', path: '/centers?action=create', labelKey: 'createCenter' },
-        { id: 'center-details', path: '/centers?view=details', labelKey: 'centerDetails' },
-        { id: 'center-status', path: '/centers?status=ACTIVE', labelKey: 'centerStatus' },
-      ],
+      allowedRoles: ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'COUNTRY_ACCOUNT', 'COUNTRY_ADMIN'],
     },
     {
       id: 'users',
       labelKey: 'userManagement',
+      path: '/users',
       icon: Users2,
-      allowedRoles: ['SUPER_ADMIN', 'COUNTRY_ACCOUNT'],
-      subItems: [
-        { id: 'country-accounts', path: '/users?role=COUNTRY_ACCOUNT', labelKey: 'countryAccounts' },
-        { id: 'center-admins', path: '/users?role=CENTER_ADMIN', labelKey: 'centerAdmins' },
-        { id: 'assessors', path: '/users?role=ASSESSOR', labelKey: 'assessors' },
-        { id: 'support-staff', path: '/users?role=SUPPORT_STAFF', labelKey: 'supportStaff' },
-        { id: 'organizers', path: '/users?role=ORGANIZER', labelKey: 'organizers' },
-      ],
+      allowedRoles: ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'COUNTRY_ACCOUNT', 'COUNTRY_ADMIN'],
     },
     {
       id: 'assessments',
       labelKey: 'assessmentManagement',
       icon: ClipboardCheck,
       subItems: [
-        { id: 'schedules', path: '/schedules', labelKey: 'schedules' },
         { id: 'batches', path: '/batches', labelKey: 'batches' },
         { id: 'candidates', path: '/candidates', labelKey: 'candidates' },
         { id: 'candidates-pending', path: '/enrollment-pending', labelKey: 'enrollmentPending' },
@@ -129,7 +113,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'candidates-eval-register', path: '/evaluation-sheet-register', labelKey: 'evaluationSheetRegister' },
         { id: 'candidates-verify', path: '/enroll-verify', labelKey: 'enrollVerify' },
         { id: 'candidates-exit', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
-        { id: 'assessments-list', path: '/assessments', labelKey: 'assessments' },
         { id: 'results', path: '/results', labelKey: 'results' },
       ],
     },
@@ -193,7 +176,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Sliders,
       allowedRoles: ['SUPER_ADMIN'],
       subItems: [
-        { id: 'apro-config', path: '/config?tab=apro', labelKey: 'aproConfig' },
         { id: 'serial-config', path: '/config?tab=serial', labelKey: 'serialConfig' },
         { id: 'assessment-settings', path: '/config?tab=assessment', labelKey: 'assessmentSettings' },
         { id: 'system-settings', path: '/config?tab=system', labelKey: 'systemSettings' },
@@ -210,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKey: 'auditLogs',
       path: '/audit',
       icon: ShieldAlert,
-      allowedRoles: ['SUPER_ADMIN', 'COUNTRY_ACCOUNT'],
+      allowedRoles: ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'COUNTRY_ACCOUNT', 'COUNTRY_ADMIN'],
     },
     {
       id: 'profile',
@@ -228,12 +210,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: LayoutDashboard,
     },
     {
-      id: 'schedules',
-      labelKey: 'schedules',
-      path: '/schedules',
-      icon: CalendarDays,
-    },
-    {
       id: 'batches',
       labelKey: 'batchManagement',
       path: '/batches',
@@ -242,38 +218,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'reservations',
       labelKey: 'reservation',
+      path: '/reservations',
       icon: CreditCard,
-      subItems: [
-        { id: 'res-import', path: '/reservations?tab=import', labelKey: 'reservationImport' },
-        { id: 'res-preload', path: '/reservations?tab=preload', labelKey: 'preloadedCandidates' },
-      ],
-    },
-    {
-      id: 'candidates',
-      labelKey: 'candidates',
-      icon: UserCheck,
-      subItems: [
-        { id: 'can-list', path: '/candidates', labelKey: 'candidateList' },
-        { id: 'can-pending', path: '/enrollment-pending', labelKey: 'enrollmentPending' },
-        { id: 'can-cbt-pending', path: '/cbt-exam-pending', labelKey: 'cbtExamPending' },
-        { id: 'can-cbt-confirmed', path: '/cbt-confirmed', labelKey: 'cbtConfirmed' },
-        { id: 'can-practical-pending', path: '/practical-pending', labelKey: 'practicalPending' },
-        { id: 'can-practical-confirmed', path: '/practical-confirmed', labelKey: 'practicalConfirmed' },
-        { id: 'can-eval-register', path: '/evaluation-sheet-register', labelKey: 'evaluationSheetRegister' },
-        { id: 'can-verify', path: '/enroll-verify', labelKey: 'enrollVerify' },
-        { id: 'can-exit-list', path: '/candidate-exit-list', labelKey: 'candidateExitList' },
-        { id: 'can-enroll', path: '/enrollment', labelKey: 'enrollment' },
-        { id: 'can-photos', path: '/candidate-photos', labelKey: 'photos' },
-      ],
     },
     {
       id: 'assessors',
-      labelKey: 'assessors',
+      labelKey: 'assessorList',
+      path: '/assessors',
       icon: Users2,
-      subItems: [
-        { id: 'ass-list', path: '/assessors?tab=list', labelKey: 'assessorList' },
-        { id: 'ass-schedule', path: '/assessors?tab=schedule', labelKey: 'assessorSchedule' },
-      ],
+    },
+    {
+      id: 'analytics',
+      labelKey: 'assessorAnalytics',
+      path: '/assessors?tab=analytics',
+      icon: BarChart3,
     },
     {
       id: 'support-staff',
@@ -290,12 +248,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'mon-practical', path: '/assessment-monitoring?tab=practical', labelKey: 'practicalAssessmentMonitoring' },
         { id: 'mon-evidence', path: '/assessment-monitoring?tab=evidence', labelKey: 'evidenceStatus' },
       ],
-    },
-    {
-      id: 'results',
-      labelKey: 'results',
-      path: '/results',
-      icon: Award,
     },
     {
       id: 'reports',
@@ -320,12 +272,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKey: 'complaints',
       path: '/complaints',
       icon: MessageSquareWarning,
-    },
-    {
-      id: 'profile',
-      labelKey: 'profile',
-      path: '/settings',
-      icon: Settings2,
     },
   ];
 
@@ -497,7 +443,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  const navGroups = isAssessor 
+  const HIDDEN_MENU_IDS = new Set([
+    'tasks',
+    'practical-task',
+    'practical-assessment',
+    'lottery',
+    'monitoring',
+    'live-activity',
+    'assessment-support',
+    'reports',
+    'id-card',
+    'config',
+    'configuration',
+    'complaints',
+  ]);
+
+  const rawNavGroups = isAssessor 
     ? assessorNavGroups 
     : (isCbtTestSupport
         ? cbtTestSupportNavGroups
@@ -506,6 +467,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             : (isSupportStaff
                 ? supportStaffNavGroups
                 : (isCenterAdmin ? centerAdminNavGroups : superAdminNavGroups))));
+
+  // Filter out the explicitly hidden menus
+  const navGroups = rawNavGroups.filter(g => !HIDDEN_MENU_IDS.has(g.id));
 
   // Auto-expand active group based on currentPath
   useEffect(() => {
@@ -539,32 +503,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return group.allowedRoles.includes(user.role);
   };
 
+  const getBrandSubtitle = () => {
+    if (isAssessor) {
+      return language === 'ar' ? 'بوابة المقيّم المعتمد' : 'Assessor Certified Portal';
+    }
+    if (isCbtTestSupport) {
+      return center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${t.roles.CBT_TEST_SUPPORT}` : (language === 'ar' ? 'دعم اختبار CBT' : 'CBT Test Support Operations');
+    }
+    if (user?.role === 'ORGANIZER') {
+      return center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${t.roles.ORGANIZER}` : (language === 'ar' ? 'منسق المركز المعتمد' : 'Center Organizer Operations');
+    }
+    if (isSupportStaff) {
+      return center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${language === 'ar' ? 'فريق الدعم' : 'Support Staff'}` : (language === 'ar' ? 'فريق الدعم التشغيلي' : 'Support Staff Operations');
+    }
+    if (isCenterAdmin) {
+      return center ? (language === 'ar' ? center.nameAr : center.nameEn) : 'Center Administration';
+    }
+    if (user?.role === 'COUNTRY_ACCOUNT' || user?.role === 'COUNTRY_ADMIN') {
+      return language === 'ar' ? 'إدارة الحساب الوطني' : 'Country Administration';
+    }
+    return 'Global Admin Governance';
+  };
+
   const sidebarContent = (
     <div className="h-full flex flex-col justify-between bg-white select-none">
       <div>
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-[#E8D9D2] bg-[#FFFCF8]">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-[#E5E7EB] bg-white">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-[#7A2E3A] text-white flex items-center justify-center font-bold text-xs tracking-wider shrink-0 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-[#A43950] text-white flex items-center justify-center font-bold text-xs tracking-wider shrink-0 shadow-xs">
               360
             </div>
             {!isCollapsed && (
               <div className="truncate">
-                <span className="text-sm font-bold text-[#3F3030] tracking-tight block">
+                <span className="text-sm font-bold text-stone-900 tracking-tight block">
                   {t.brand.name}
                 </span>
-                <span className="text-[10px] text-[#806F6F] font-medium tracking-wide truncate block" title={center ? (language === 'ar' ? center.nameAr : center.nameEn) : undefined}>
-                  {isAssessor 
-                    ? (language === 'ar' ? 'بوابة المقيّم المعتمد' : 'Assessor Certified Portal')
-                    : (isCbtTestSupport
-                        ? (center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${t.roles.CBT_TEST_SUPPORT}` : (language === 'ar' ? 'دعم اختبار CBT' : 'CBT Test Support Operations'))
-                        : (user?.role === 'ORGANIZER'
-                            ? (center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${t.roles.ORGANIZER}` : (language === 'ar' ? 'منسق المركز المعتمد' : 'Center Organizer Operations'))
-                            : (isSupportStaff
-                                ? (center ? `${language === 'ar' ? center.nameAr : center.nameEn} • ${language === 'ar' ? 'فريق الدعم' : 'Support Staff'}` : (language === 'ar' ? 'فريق الدعم التشغيلي' : 'Support Staff Operations'))
-                                : (isCenterAdmin 
-                                    ? (center ? (language === 'ar' ? center.nameAr : center.nameEn) : 'Center Administration')
-                                    : 'Super Admin Governance'))))}
+                <span className="text-[10px] text-stone-500 font-medium tracking-wide truncate block" title={center ? (language === 'ar' ? center.nameAr : center.nameEn) : undefined}>
+                  {getBrandSubtitle()}
                 </span>
               </div>
             )}
@@ -603,16 +579,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     title={isCollapsed ? label : undefined}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all text-start ${
                       isGroupActive
-                        ? 'bg-[#F8ECEE] text-[#7A2E3A] font-semibold'
-                        : 'text-[#3F3030] hover:text-[#7A2E3A] hover:bg-[#FFFCF8]'
+                        ? 'bg-white text-[#7A2E3A] font-bold border border-gray-200 shadow-xs'
+                        : 'text-stone-700 hover:text-[#7A2E3A] hover:bg-gray-50 active:bg-gray-100'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <Icon className={`w-4 h-4 shrink-0 ${isGroupActive ? 'text-[#7A2E3A]' : 'text-[#806F6F]'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 ${isGroupActive ? 'text-[#7A2E3A]' : 'text-stone-500'}`} />
                       {!isCollapsed && <span className="truncate">{label}</span>}
                     </div>
                     {!isCollapsed && (
-                      <span className="text-[#806F6F] shrink-0">
+                      <span className="text-stone-400 shrink-0">
                         {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                       </span>
                     )}
@@ -624,18 +600,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     title={isCollapsed ? label : undefined}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-start ${
                       isGroupActive
-                        ? 'bg-[#7A2E3A] text-white font-semibold shadow-sm'
-                        : 'text-[#3F3030] hover:text-[#7A2E3A] hover:bg-[#FFFCF8]'
+                        ? 'bg-white text-[#7A2E3A] font-bold border border-gray-200 shadow-xs'
+                        : 'text-stone-700 hover:text-[#7A2E3A] hover:bg-gray-50 active:bg-gray-100'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${isGroupActive ? 'text-white' : 'text-[#806F6F]'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isGroupActive ? 'text-[#7A2E3A]' : 'text-stone-500'}`} />
                     {!isCollapsed && <span className="truncate">{label}</span>}
                   </button>
                 )}
 
                 {/* Submenu accordion */}
                 {hasSub && isExpanded && !isCollapsed && (
-                  <div className={`space-y-0.5 pt-0.5 pb-1 ${isRTL ? 'pe-5 border-e border-[#E8D9D2]/70' : 'ps-5 border-s border-[#E8D9D2]/70'} ms-3 me-1`}>
+                  <div className={`space-y-0.5 pt-0.5 pb-1 ${isRTL ? 'pe-5 border-e border-[#E5E7EB]' : 'ps-5 border-s border-[#E5E7EB]'} ms-3 me-1`}>
                     {group.subItems!.map(sub => {
                       const subActive = currentPath === sub.path || currentPath === sub.path.split('?')[0];
                       const subLabel = (t.nav as Record<string, string>)[sub.labelKey] || sub.labelKey;
@@ -647,11 +623,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           onClick={() => handleNavigate(sub.path)}
                           className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors text-start ${
                             subActive
-                              ? 'bg-[#F8ECEE] text-[#7A2E3A] font-bold'
-                              : 'text-[#806F6F] hover:text-[#3F3030] hover:bg-[#FFFCF8]'
+                              ? 'bg-white text-[#7A2E3A] font-bold border border-gray-200 shadow-2xs'
+                              : 'text-stone-500 hover:text-stone-900 hover:bg-gray-50 active:bg-gray-100'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${subActive ? 'bg-[#7A2E3A]' : 'bg-[#E8D9D2]'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${subActive ? 'bg-[#7A2E3A]' : 'bg-stone-300'}`} />
                           <span className="truncate">{subLabel}</span>
                         </button>
                       );
@@ -665,17 +641,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer / Toggle */}
-      <div className="p-3 border-t border-[#E8D9D2] bg-[#FFFCF8] flex items-center justify-between">
+      <div className="p-3 border-t border-[#E5E7EB] bg-white flex items-center justify-between">
         {!isCollapsed && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[#806F6F] font-mono">
-            <Shield className="w-3.5 h-3.5 text-[#C9A24D]" />
+          <div className="flex items-center gap-1.5 text-[11px] text-stone-500 font-mono">
+            <Shield className="w-3.5 h-3.5 text-[#D4AF37]" />
             <span>{isSupportStaff ? (center ? `${center.code} • Ops` : 'Support Ops') : (isCenterAdmin ? (center ? center.code : 'Center Ops') : 'Gov. Level 1')}</span>
           </div>
         )}
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="hidden md:flex p-1.5 rounded text-[#806F6F] hover:text-[#3F3030] hover:bg-stone-100 transition-colors mx-auto"
+          className="hidden md:flex p-1.5 rounded text-stone-500 hover:text-stone-900 hover:bg-stone-100 active:bg-[#FDF2F4] transition-colors mx-auto"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (

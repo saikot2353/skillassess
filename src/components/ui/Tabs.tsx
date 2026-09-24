@@ -30,7 +30,7 @@ export const Tabs: React.FC<TabsProps> = ({
             onClick={() => onChange(tab.id)}
             className={`flex items-center gap-2 px-3.5 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-[1px] ${
               isActive
-                ? 'border-maroon-800 text-maroon-900 bg-maroon-50/40'
+                ? 'border-[#A43950] text-[#A43950] bg-[#FDF2F4]/70 font-semibold'
                 : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'
             }`}
           >
@@ -38,7 +38,7 @@ export const Tabs: React.FC<TabsProps> = ({
             {tab.count !== undefined && (
               <span
                 className={`text-[11px] px-1.5 py-0.2 rounded-full font-semibold ${
-                  isActive ? 'bg-maroon-100 text-maroon-900' : 'bg-stone-100 text-stone-600'
+                  isActive ? 'bg-[#FCE7EB] text-[#A43950]' : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {tab.count}

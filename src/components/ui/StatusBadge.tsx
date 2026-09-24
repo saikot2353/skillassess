@@ -47,7 +47,20 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
     case 'IN_ASSESSMENT':
     case 'UNDER_REVIEW':
     case 'SUBMITTED':
+    case 'CHECKED_IN':
       variant = 'info';
+      if (normalized === 'CHECKED_IN') label = 'Checked In';
+      break;
+
+    case 'PAUSED':
+    case 'PAUSED_PENDING_VERIFICATION':
+      variant = 'warning';
+      label = 'Paused — Pending Verification';
+      break;
+
+    case 'EXPELLED':
+      variant = 'danger';
+      label = 'Expelled';
       break;
 
     case 'EVALUATED':

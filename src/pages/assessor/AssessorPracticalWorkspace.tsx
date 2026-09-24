@@ -249,7 +249,7 @@ export const AssessorPracticalWorkspace: React.FC<AssessorPracticalWorkspaceProp
           >
             {candidates.map(c => (
               <option key={c.id} value={c.id}>
-                {isRTL ? c.fullNameAr : c.fullNameEn} ({c.aproReference} - {c.status})
+                {isRTL ? c.fullNameAr : c.fullNameEn} ({c.passportNumber} - {c.status})
               </option>
             ))}
           </select>
@@ -272,7 +272,7 @@ export const AssessorPracticalWorkspace: React.FC<AssessorPracticalWorkspaceProp
                   <h3 className="font-bold text-gray-900 text-sm leading-tight">
                     {isRTL ? candidate.fullNameAr : candidate.fullNameEn}
                   </h3>
-                  <div className="text-xs text-gray-500 font-mono mt-0.5">{candidate.aproReference}</div>
+                  <div className="text-xs text-gray-500 font-mono mt-0.5">{candidate.passportNumber}</div>
                   <div className="text-xs font-semibold text-indigo-700 mt-1">{candidate.occupation}</div>
                 </div>
               </div>

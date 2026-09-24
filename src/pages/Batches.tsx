@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Layers, Calendar, Trash2, Search, Save, Eye, CheckCircle2, FileSpreadsheet, Clock, FileArchive } from 'lucide-react';
+import { Plus, Layers, Calendar, Trash2, Search, Save, Eye, CheckCircle2, FileSpreadsheet, Clock, FileArchive, BarChart3, FileText } from 'lucide-react';
 import { Batch, Center, Candidate } from '../types';
 import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
@@ -16,6 +16,8 @@ import { Select } from '../components/ui/Select';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Pagination } from '../components/ui/Pagination';
 import { BatchEvaluationSummaryModal } from '../components/batches/BatchEvaluationSummaryModal';
+import { BatchLiveProgressModal } from '../components/batches/BatchLiveProgressModal';
+import { BatchEndOfDayReportModal } from '../components/batches/BatchEndOfDayReportModal';
 
 export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
@@ -23,6 +25,8 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
   const { user } = useAuth();
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
+  const userCountryId = user?.countryId || 'cnt-sa';
+  const isCountryAdmin = user?.role === 'COUNTRY_ADMIN' || user?.role === 'COUNTRY_ACCOUNT';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
   const isSupportStaff = user?.role === 'SUPPORT_STAFF' || user?.role === 'ORGANIZER';
   const isCenterScoped = isCenterAdmin || isSupportStaff;
@@ -37,6 +41,8 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [viewingBatch, setViewingBatch] = useState<Batch | null>(null);
   const [evaluationSummaryBatch, setEvaluationSummaryBatch] = useState<Batch | null>(null);
+  const [liveProgressBatch, setLiveProgressBatch] = useState<Batch | null>(null);
+  const [endOfDayReportBatch, setEndOfDayReportBatch] = useState<Batch | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     batchNumber: `BATCH-2026-0${Math.floor(10 + Math.random() * 90)}`,
@@ -44,22 +50,34 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
     occupation: 'Electrical Installation',
     startDate: new Date().toISOString().split('T')[0],
     startTime: '10:30 AM',
+    releaseTime: '09:45 AM',
     status: 'ACTIVE' as any,
   });
 
   const loadData = () => {
     const allBatches = StorageService.get<Batch[]>(STORAGE_KEYS.BATCHES, []);
-    const filtered = isCenterScoped 
-      ? allBatches.filter(b => b.centerId === userCenterId)
-      : allBatches;
-    setBatches(filtered);
-    setCenters(StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []));
+    const allCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+    const countryCenterIds = new Set(allCenters.filter(c => c.countryId === userCountryId).map(c => c.id));
+
+    let filteredBatches = allBatches;
+    let filteredCenters = allCenters;
+
+    if (isCenterScoped) {
+      filteredBatches = allBatches.filter(b => b.centerId === userCenterId);
+      filteredCenters = allCenters.filter(c => c.id === userCenterId);
+    } else if (isCountryAdmin) {
+      filteredBatches = allBatches.filter(b => countryCenterIds.has(b.centerId));
+      filteredCenters = allCenters.filter(c => c.countryId === userCountryId);
+    }
+
+    setBatches(filteredBatches);
+    setCenters(filteredCenters);
     setCandidates(StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []));
   };
 
   useEffect(() => {
     loadData();
-  }, [userCenterId, isCenterScoped]);
+  }, [userCenterId, userCountryId, isCenterScoped, isCountryAdmin]);
 
   const handleOpenAdd = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -69,6 +87,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
       occupation: 'Electrical Installation',
       startDate: today,
       startTime: '10:30 AM',
+      releaseTime: '09:45 AM',
       status: 'ACTIVE',
     });
     setIsAddOpen(true);
@@ -86,6 +105,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
       candidateCount: 0, // Automatically derived from enrolled candidates
       startDate: formData.startDate,
       startTime: formData.startTime,
+      releaseTime: formData.releaseTime,
       startDateTime: combinedDateTime,
       assessmentDate: formData.startDate,
       assessmentTime: formData.startTime,
@@ -155,6 +175,16 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
       ),
     },
     {
+      key: 'releaseTime',
+      header: language === 'ar' ? 'وقت تحرير القرعة' : 'Release Time',
+      render: b => (
+        <span className="text-xs font-mono font-bold text-[#A43950] flex items-center gap-1">
+          <Clock className="w-3.5 h-3.5 text-[#C9A24D]" />
+          <span>{b.releaseTime || '09:45 AM'}</span>
+        </span>
+      ),
+    },
+    {
       key: 'status',
       header: t.common.status,
       render: b => <StatusBadge status={b.status} />,
@@ -165,7 +195,31 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
       className: 'text-end',
       headerClassName: 'text-end',
       render: b => (
-        <div className="flex items-center justify-end gap-1.5">
+        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              setLiveProgressBatch(b);
+              AuditService.log('VIEW', 'BATCH_LIVE_PROGRESS', `Inspected live progression for batch ${b.batchNumber}`, b.id);
+            }}
+            className="p-1.5 px-2 rounded text-xs font-medium text-[#7A2E3A] hover:bg-[#F8ECEE] border border-[#E8D9D2] transition-colors inline-flex items-center gap-1"
+            title={language === 'ar' ? 'المتابعة الميدانية للدفعة' : 'Live Candidate Progress & Photos'}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-[#A43950]" />
+            <span className="hidden sm:inline">{language === 'ar' ? 'المتابعة' : 'Live'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEndOfDayReportBatch(b);
+              AuditService.log('VIEW', 'BATCH_EOD_REPORT', `Opened End-of-Day report for batch ${b.batchNumber}`, b.id);
+            }}
+            className="p-1.5 px-2 rounded text-xs font-medium text-[#91702C] hover:bg-[#FBF6E8] border border-[#E8D9D2] transition-colors inline-flex items-center gap-1"
+            title={language === 'ar' ? 'التقرير النهائي اليومي للدفعة' : 'End-of-Day Batch Final Report'}
+          >
+            <FileText className="w-3.5 h-3.5 text-[#C9A24D]" />
+            <span className="hidden md:inline">{language === 'ar' ? 'تقرير الختام' : 'EOD Report'}</span>
+          </button>
           <button
             type="button"
             onClick={() => onNavigate && onNavigate(`/reservations?tab=import&batchId=${b.id}`)}
@@ -173,7 +227,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
             title={language === 'ar' ? 'استيراد الحجوزات للدفعة' : 'Import Reservations'}
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-[#7A2E3A]" />
-            <span className="hidden sm:inline">{language === 'ar' ? 'استيراد' : 'Import'}</span>
+            <span className="hidden lg:inline">{language === 'ar' ? 'استيراد' : 'Import'}</span>
           </button>
           <button
             type="button"
@@ -185,7 +239,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
             title={language === 'ar' ? 'حزمة الأدلة والتقييم' : 'Assessment Evidence & Evaluation Package'}
           >
             <FileArchive className="w-3.5 h-3.5 text-[#7A2E3A]" />
-            <span className="hidden md:inline">{language === 'ar' ? 'حزمة الأدلة' : 'Evidence Package'}</span>
+            <span className="hidden lg:inline">{language === 'ar' ? 'الأدلة' : 'Evidence'}</span>
           </button>
           <button
             type="button"
@@ -372,6 +426,41 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
               </div>
             </div>
           </div>
+
+          <ModalSectionTitle title={language === 'ar' ? 'وقت تحرير قرعة وتكليف المقيمين' : 'Assessor Assignment Release Time'} />
+          <div>
+            <label className="block text-xs font-semibold text-[#2C2623] mb-1 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-[#A43950]" />
+              <span>{language === 'ar' ? 'وقت تحرير التكليف (المقيم)' : 'Release Time (e.g. 09:45 AM)'}</span>
+              <span className="text-[10px] text-[#7C756D] font-normal">({language === 'ar' ? 'يحجب التكليف حتى يحين الوقت' : 'Concealed before release time'})</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                required
+                placeholder="09:45 AM"
+                value={formData.releaseTime}
+                onChange={e => setFormData({ ...formData, releaseTime: e.target.value })}
+                className="w-full px-3 py-2 text-sm bg-white border border-[#D5D0C7] rounded-lg focus:outline-none focus:border-[#7A2E3A] font-mono font-bold text-[#A43950]"
+              />
+              <select
+                value={formData.releaseTime.toUpperCase().includes('PM') ? 'PM' : 'AM'}
+                onChange={e => {
+                  const cleanTime = formData.releaseTime.replace(/\s*(AM|PM)/gi, '').trim() || '09:45';
+                  setFormData({ ...formData, releaseTime: `${cleanTime} ${e.target.value}` });
+                }}
+                className="px-2.5 py-2 text-sm bg-[#FAF8F5] border border-[#D5D0C7] rounded-lg text-[#2C2623] font-semibold cursor-pointer"
+              >
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+            <p className="text-[11px] text-[#7C756D] mt-1">
+              {language === 'ar' 
+                ? 'وفقاً لضوابط مكافحة الانحياز، تظل قوائم المرشحين محجوبة عن واجهة المقيم حتى يحين وقت التحرير المحدد.'
+                : 'Under blind anti-bias rules, candidate allocations remain concealed on the assessor interface until this exact release time.'}
+            </p>
+          </div>
         </form>
       </Modal>
 
@@ -468,7 +557,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
                                 {language === 'ar' ? c.fullNameAr : c.fullNameEn}
                               </span>
                               <span className="text-[10px] font-mono text-[#7C756D]">
-                                {c.passportNumber} • {c.aproReference}
+                                {c.passportNumber}
                               </span>
                             </div>
                             <StatusBadge status={c.status} />
@@ -494,6 +583,29 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
         batch={evaluationSummaryBatch}
         candidates={candidates}
         centers={centers}
+      />
+
+      {/* Batch Live Progression & Photos Modal */}
+      <BatchLiveProgressModal
+        isOpen={Boolean(liveProgressBatch)}
+        onClose={() => {
+          setLiveProgressBatch(null);
+          loadData();
+        }}
+        batch={liveProgressBatch}
+        candidates={candidates}
+      />
+
+      {/* End-of-Day Batch Final Report Modal */}
+      <BatchEndOfDayReportModal
+        isOpen={Boolean(endOfDayReportBatch)}
+        onClose={() => {
+          setEndOfDayReportBatch(null);
+          loadData();
+        }}
+        batch={endOfDayReportBatch}
+        candidates={candidates}
+        center={centers.find(c => c.id === endOfDayReportBatch?.centerId) || centers[0] || null}
       />
     </div>
   );

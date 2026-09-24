@@ -33,7 +33,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   }, []);
 
   return (
-    <div className={`min-h-screen bg-canvas-base flex ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`min-h-screen bg-white flex ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
       {/* Sidebar: Anchored Left in LTR, Right in RTL */}
       <Sidebar
         isOpen={isSidebarOpenMobile}

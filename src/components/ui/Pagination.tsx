@@ -47,7 +47,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="p-1.5 rounded border border-borderlight bg-white text-stone-600 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded border border-borderlight bg-white text-stone-600 hover:text-[#A43950] hover:border-[#A43950]/40 hover:bg-[#FDF2F4]/40 active:bg-[#FDF2F4] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label={t.common.previous}
         >
           {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -61,7 +61,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="p-1.5 rounded border border-borderlight bg-white text-stone-600 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded border border-borderlight bg-white text-stone-600 hover:text-[#A43950] hover:border-[#A43950]/40 hover:bg-[#FDF2F4]/40 active:bg-[#FDF2F4] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label={t.common.next}
         >
           {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

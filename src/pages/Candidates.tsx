@@ -64,7 +64,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
 
   const userCenterId = user?.centerId || 'ctr-sa-1';
   const userCountryId = user?.countryId || 'cnt-sa';
-  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT';
+  const isCountryAccount = user?.role === 'COUNTRY_ACCOUNT' || user?.role === 'COUNTRY_ADMIN';
   const isCenterAdmin = user?.role === 'CENTER_ADMIN';
   const isAssessor = user?.role === 'ASSESSOR';
   const isCbtTestSupport = user?.role === 'CBT_TEST_SUPPORT';
@@ -1234,14 +1234,11 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     },
     {
       key: 'passport',
-      header: language === 'ar' ? 'رقم الجواز و APRO' : 'Passport & APRO',
+      header: language === 'ar' ? 'رقم الجواز' : 'Passport Number',
       render: c => (
         <div>
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
-          </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
           </span>
         </div>
       ),
@@ -1330,14 +1327,11 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     },
     {
       key: 'passport',
-      header: language === 'ar' ? 'رقم الجواز و APRO' : 'Passport & APRO',
+      header: language === 'ar' ? 'رقم الجواز' : 'Passport Number',
       render: c => (
         <div>
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
-          </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
           </span>
         </div>
       ),
@@ -1473,14 +1467,11 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     },
     {
       key: 'passport',
-      header: language === 'ar' ? 'رقم الجواز و APRO' : 'Passport & APRO',
+      header: language === 'ar' ? 'رقم الجواز' : 'Passport Number',
       render: c => (
         <div>
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
-          </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
           </span>
         </div>
       ),
@@ -1578,14 +1569,11 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
     },
     {
       key: 'passport',
-      header: language === 'ar' ? 'رقم الجواز و APRO' : 'Passport & APRO',
+      header: language === 'ar' ? 'رقم الجواز' : 'Passport Number',
       render: c => (
         <div>
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
-          </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
           </span>
         </div>
       ),
@@ -1692,9 +1680,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
         <div>
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
-          </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
           </span>
         </div>
       ),
@@ -1907,9 +1892,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
           </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
-          </span>
         </div>
       ),
     },
@@ -2034,9 +2016,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
           </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
-          </span>
         </div>
       ),
     },
@@ -2134,9 +2113,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
         <div>
           <span className="font-mono text-xs font-bold text-[#7A2E3A] block">
             {c.passportNumber}
-          </span>
-          <span className="text-[11px] text-[#7C756D] font-mono">
-            {c.aproReference}
           </span>
         </div>
       ),
@@ -2811,7 +2787,7 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
               )}
             </div>
           }
-          subtitle={`Passport: ${viewCandidate.passportNumber} • APRO Reference: ${viewCandidate.aproReference}`}
+          subtitle={`Passport: ${viewCandidate.passportNumber}`}
           footer={
             <div className="flex items-center justify-between w-full">
               {isPracticalConfirmedMode ? (
@@ -4181,12 +4157,6 @@ export const CandidatesPage: React.FC<CandidatesPageProps> = ({ onNavigate, mode
                   required
                   value={formData.passportNumber}
                   onChange={e => setFormData({ ...formData, passportNumber: e.target.value })}
-                />
-                <Input
-                  label="APRO Reference"
-                  required
-                  value={formData.aproReference}
-                  onChange={e => setFormData({ ...formData, aproReference: e.target.value })}
                 />
                 <Input
                   label="National ID"

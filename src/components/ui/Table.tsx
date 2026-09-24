@@ -68,7 +68,7 @@ export function Table<T>({
                   key={keyExtractor(row)}
                   onClick={() => onRowClick && onRowClick(row)}
                   className={`transition-colors ${
-                    onRowClick ? 'cursor-pointer hover:bg-stone-50/80' : 'hover:bg-canvas-base/60'
+                    onRowClick ? 'cursor-pointer hover:bg-stone-50/80' : 'hover:bg-stone-50/60'
                   }`}
                 >
                   {columns.map(col => (

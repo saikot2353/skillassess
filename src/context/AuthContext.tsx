@@ -146,8 +146,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const expectedPass = foundUser.password || foundUser.tempPassword || demoPasswordMap[foundUser.username || ''] || 
-      (foundUser.role === 'SUPER_ADMIN' ? 'admin123' :
-       foundUser.role === 'COUNTRY_ACCOUNT' ? 'country123' :
+      (foundUser.role === 'GLOBAL_ADMIN' || foundUser.role === 'SUPER_ADMIN' ? 'admin123' :
+       foundUser.role === 'COUNTRY_ADMIN' || foundUser.role === 'COUNTRY_ACCOUNT' ? 'country123' :
        foundUser.role === 'CENTER_ADMIN' ? 'center123' :
        foundUser.role === 'ASSESSOR' ? 'Demo@12345' :
        foundUser.role === 'ORGANIZER' ? 'organizer123' :
@@ -158,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (foundUser.password && cleanPass === foundUser.password) ||
       (foundUser.tempPassword && cleanPass === foundUser.tempPassword) ||
       cleanPass === 'admin123' ||
+      cleanPass === 'country123' ||
       cleanPass === 'Demo@12345' ||
       (foundUser.role === 'ASSESSOR' && cleanPass === 'assessor123');
 
@@ -190,10 +191,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchRole = (role: Role) => {
     const users = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
+    // Map role equivalents for demo switching
+    const roleMatches = (userRole: Role, targetRole: Role) => {
+      if (userRole === targetRole) return true;
+      if ((targetRole === 'GLOBAL_ADMIN' || targetRole === 'SUPER_ADMIN') && (userRole === 'GLOBAL_ADMIN' || userRole === 'SUPER_ADMIN')) return true;
+      if ((targetRole === 'COUNTRY_ADMIN' || targetRole === 'COUNTRY_ACCOUNT') && (userRole === 'COUNTRY_ADMIN' || userRole === 'COUNTRY_ACCOUNT')) return true;
+      return false;
+    };
+
     // If the current user is assigned to a specific center, prioritize matching within the same center
     const matchingUser = 
-      (user?.centerId ? users.find(u => u.role === role && u.centerId === user.centerId && u.status === 'ACTIVE') : null) ||
-      users.find(u => u.role === role && u.status === 'ACTIVE');
+      (user?.centerId ? users.find(u => roleMatches(u.role, role) && u.centerId === user.centerId && u.status === 'ACTIVE') : null) ||
+      users.find(u => roleMatches(u.role, role) && u.status === 'ACTIVE');
     if (matchingUser) {
       setUser(matchingUser);
       StorageService.set(STORAGE_KEYS.AUTH, matchingUser);

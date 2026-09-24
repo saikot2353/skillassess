@@ -249,7 +249,6 @@ export const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onNavigate
   const tabs = [
     { id: 'general', label: language === 'ar' ? 'الإعدادات العامة' : 'General (System)' },
     { id: 'assessment', label: language === 'ar' ? 'معايير التقييم' : 'Assessment' },
-    { id: 'apro', label: language === 'ar' ? 'معرفات APRO' : 'APRO' },
     { id: 'serial', label: language === 'ar' ? 'التسلسل الرقمي' : 'Serial' },
     { id: 'idcard', label: language === 'ar' ? 'بطاقة الهوية' : 'ID Card' },
     { id: 'tasks', label: language === 'ar' ? 'المهام العملية' : 'Practical Tasks' },
@@ -261,7 +260,7 @@ export const ConfigurationPage: React.FC<ConfigurationPageProps> = ({ onNavigate
       {/* Header */}
       <PageHeader
         title={language === 'ar' ? 'إعدادات المنظومة وتخصيص الهيكلية' : 'System Configuration & Policy Governance'}
-        subtitle={language === 'ar' ? 'ضبط المعايير الدولية للاختبار، قواعد الترقيم، التسلسل المرجعي والتفضيلات' : 'Supervisory policy controls, APRO numbering tokens, certificate serialization, ID card templates, and alerts'}
+        subtitle={language === 'ar' ? 'ضبط المعايير الدولية للاختبار، قواعد الترقيم، التسلسل المرجعي والتفضيلات' : 'Supervisory policy controls, certificate serialization, ID card templates, and alerts'}
         breadcrumbs={[
           { label: t.nav.dashboard, href: '/dashboard' },
           { label: language === 'ar' ? 'التكوين والإعدادات' : 'Configuration' },

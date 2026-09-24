@@ -5,6 +5,7 @@ import { StorageService, STORAGE_KEYS } from '../services/storageService';
 import { AuditService } from '../services/auditService';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Table, Column } from '../components/ui/Table';
 import { StatusBadge } from '../components/ui/StatusBadge';
@@ -23,6 +24,10 @@ export interface CentersProps {
 export const Centers: React.FC<CentersProps> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
   const { showToast } = useToast();
+  const { user } = useAuth();
+
+  const isCountryAdmin = user?.role === 'COUNTRY_ADMIN' || user?.role === 'COUNTRY_ACCOUNT';
+  const userCountryId = user?.countryId || 'cnt-sa';
 
   const [centers, setCenters] = useState<Center[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -62,29 +67,42 @@ export const Centers: React.FC<CentersProps> = ({ onNavigate }) => {
   const loadData = () => {
     const loadedCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
     const loadedCountries = StorageService.get<Country[]>(STORAGE_KEYS.COUNTRIES, []);
-    setCenters(loadedCenters);
-    setCountries(loadedCountries);
+    const filteredCenters = isCountryAdmin 
+      ? loadedCenters.filter(c => c.countryId === userCountryId)
+      : loadedCenters;
+    const scopedCountries = isCountryAdmin
+      ? loadedCountries.filter(c => c.id === userCountryId)
+      : loadedCountries;
+    setCenters(filteredCenters);
+    setCountries(scopedCountries);
     setUsers(StorageService.get<User[]>(STORAGE_KEYS.USERS, []));
     setCandidates(StorageService.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []));
     setBatches(StorageService.get<Batch[]>(STORAGE_KEYS.BATCHES, []));
   };
 
   useEffect(() => {
-    loadData();
+    const syncFromUrl = () => {
+      loadData();
 
-    // Check URL query parameters for action or details
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get('action') === 'create') {
-      handleOpenAdd();
-    }
-    const paramId = searchParams.get('id');
-    if (paramId) {
-      setSelectedCenterId(paramId);
-    } else if (searchParams.get('view') === 'details') {
-      const all = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
-      if (all.length > 0) setSelectedCenterId(all[0].id);
-    }
-  }, []);
+      // Check URL query parameters for action or details
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('action') === 'create') {
+        handleOpenAdd();
+      }
+      const paramId = searchParams.get('id');
+      if (paramId) {
+        setSelectedCenterId(paramId);
+      } else if (searchParams.get('view') === 'details') {
+        const all = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
+        const filteredAll = isCountryAdmin ? all.filter(c => c.countryId === userCountryId) : all;
+        if (filteredAll.length > 0) setSelectedCenterId(filteredAll[0].id);
+      }
+    };
+
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, [isCountryAdmin, userCountryId]);
 
   const handleOpenAdd = () => {
     setEditingCenter(null);
@@ -92,7 +110,7 @@ export const Centers: React.FC<CentersProps> = ({ onNavigate }) => {
       code: `CTR-${Date.now().toString().slice(-4)}`,
       nameEn: '',
       nameAr: '',
-      countryId: countries[0]?.id || '',
+      countryId: isCountryAdmin ? userCountryId : (countries[0]?.id || ''),
       city: '',
       address: '',
       capacity: 100,
@@ -360,6 +378,10 @@ export const Centers: React.FC<CentersProps> = ({ onNavigate }) => {
         centerId={selectedCenterId}
         onBack={() => {
           setSelectedCenterId(null);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('view');
+          url.searchParams.delete('id');
+          window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
           loadData();
         }}
         onNavigate={onNavigate || (() => {})}
@@ -412,21 +434,28 @@ export const Centers: React.FC<CentersProps> = ({ onNavigate }) => {
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
           <Filter className="w-4 h-4 text-stone-400" />
-          <select
-            value={countryFilter}
-            onChange={e => {
-              setCountryFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="text-xs bg-white border border-borderlight rounded-md py-1.5 px-2.5 focus:outline-none focus:border-maroon-700 text-stone-700"
-          >
-            <option value="ALL">{t.common.all} {t.countriesModule.title}</option>
-            {countries.map(cnt => (
-              <option key={cnt.id} value={cnt.id}>
-                {cnt.flagEmoji} {language === 'ar' ? cnt.nameAr : cnt.nameEn}
-              </option>
-            ))}
-          </select>
+          {!isCountryAdmin ? (
+            <select
+              value={countryFilter}
+              onChange={e => {
+                setCountryFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="text-xs bg-white border border-borderlight rounded-md py-1.5 px-2.5 focus:outline-none focus:border-maroon-700 text-stone-700"
+            >
+              <option value="ALL">{t.common.all} {t.countriesModule.title}</option>
+              {countries.map(cnt => (
+                <option key={cnt.id} value={cnt.id}>
+                  {cnt.flagEmoji} {language === 'ar' ? cnt.nameAr : cnt.nameEn}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="text-xs bg-stone-50 border border-stone-200 rounded-md py-1.5 px-2.5 font-medium text-stone-700 flex items-center gap-1.5">
+              <span>{countries[0]?.flagEmoji}</span>
+              <span>{language === 'ar' ? countries[0]?.nameAr : countries[0]?.nameEn}</span>
+            </div>
+          )}
 
           <select
             value={statusFilter}

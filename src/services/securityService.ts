@@ -20,6 +20,22 @@ export type Permission =
   | 'report.view' | 'report.export';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
+  GLOBAL_ADMIN: [
+    'candidate.view', 'candidate.create', 'candidate.edit', 'candidate.delete', 'candidate.enroll',
+    'batch.view', 'batch.create', 'batch.edit', 'batch.close',
+    'schedule.view', 'schedule.create', 'schedule.edit',
+    'assessment.view', 'assessment.execute', 'assessment.submit', 'assessment.lock',
+    'result.view', 'result.submit', 'result.override', 'result.lock',
+    'lottery.view', 'lottery.execute', 'lottery.release',
+    'task.view', 'task.create', 'task.edit', 'task.upload',
+    'idcard.view', 'idcard.request', 'idcard.approve', 'idcard.generate',
+    'complaint.view', 'complaint.submit', 'complaint.review', 'complaint.resolve',
+    'user.view', 'user.create', 'user.edit', 'user.status',
+    'configuration.view', 'configuration.edit',
+    'audit.view', 'audit.export',
+    'monitoring.view',
+    'report.view', 'report.export',
+  ],
   SUPER_ADMIN: [
     'candidate.view', 'candidate.create', 'candidate.edit', 'candidate.delete', 'candidate.enroll',
     'batch.view', 'batch.create', 'batch.edit', 'batch.close',
@@ -32,6 +48,22 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'complaint.view', 'complaint.submit', 'complaint.review', 'complaint.resolve',
     'user.view', 'user.create', 'user.edit', 'user.status',
     'configuration.view', 'configuration.edit',
+    'audit.view', 'audit.export',
+    'monitoring.view',
+    'report.view', 'report.export',
+  ],
+  COUNTRY_ADMIN: [
+    'candidate.view', 'candidate.create', 'candidate.edit', 'candidate.enroll',
+    'batch.view', 'batch.create', 'batch.edit',
+    'schedule.view',
+    'assessment.view',
+    'result.view', 'result.lock',
+    'lottery.view',
+    'task.view',
+    'idcard.view', 'idcard.request', 'idcard.approve',
+    'complaint.view', 'complaint.submit', 'complaint.review', 'complaint.resolve',
+    'user.view', 'user.create', 'user.edit',
+    'configuration.view',
     'audit.view', 'audit.export',
     'monitoring.view',
     'report.view', 'report.export',
@@ -139,7 +171,17 @@ export class SecurityService {
    */
   static hasRole(user: User | null, allowedRoles: Role[]): boolean {
     if (!user || user.status !== 'ACTIVE') return false;
-    return allowedRoles.includes(user.role);
+    if (allowedRoles.includes(user.role)) return true;
+    // Map aliases
+    if ((user.role === 'GLOBAL_ADMIN' && allowedRoles.includes('SUPER_ADMIN')) ||
+        (user.role === 'SUPER_ADMIN' && allowedRoles.includes('GLOBAL_ADMIN'))) {
+      return true;
+    }
+    if ((user.role === 'COUNTRY_ADMIN' && allowedRoles.includes('COUNTRY_ACCOUNT')) ||
+        (user.role === 'COUNTRY_ACCOUNT' && allowedRoles.includes('COUNTRY_ADMIN'))) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -148,11 +190,11 @@ export class SecurityService {
   static isScopeAllowed(user: User | null, targetCountryId?: string, targetCenterId?: string): boolean {
     if (!user || user.status !== 'ACTIVE') return false;
 
-    // Super Admin has unrestricted global scope
-    if (user.role === 'SUPER_ADMIN') return true;
+    // Global Admin / Super Admin has unrestricted global scope
+    if (user.role === 'GLOBAL_ADMIN' || user.role === 'SUPER_ADMIN') return true;
 
-    // Country Account is scoped to their designated country
-    if (user.role === 'COUNTRY_ACCOUNT') {
+    // Country Admin / Country Account is scoped to their designated country
+    if (user.role === 'COUNTRY_ADMIN' || user.role === 'COUNTRY_ACCOUNT') {
       if (!targetCountryId) return true;
       return user.countryId === targetCountryId;
     }
@@ -255,6 +297,18 @@ export class SecurityService {
         };
       }
 
+      // Check batch release time if batch is configured
+      if (candidate.batchId) {
+        const batches = StorageService.get<Batch[]>(STORAGE_KEYS.BATCHES, []);
+        const matchingBatch = batches.find(b => b.id === candidate.batchId);
+        if (matchingBatch?.releaseTime && !SecurityService.isBatchReleased(matchingBatch)) {
+          return {
+            allowed: false,
+            reason: `Assessor allocations are sealed until official release time (${matchingBatch.releaseTime}).`
+          };
+        }
+      }
+
       return { allowed: true };
     }
 
@@ -273,6 +327,40 @@ export class SecurityService {
     }
 
     return { allowed: true };
+  }
+
+  /**
+   * Determine whether a batch's candidate allocations have passed the configured release time.
+   */
+  static isBatchReleased(batch?: Batch | null): boolean {
+    if (!batch || !batch.releaseTime) return true;
+    try {
+      const now = new Date();
+      // If batch has a specific startDate, compare calendar dates
+      if (batch.startDate) {
+        const todayStr = now.toISOString().split('T')[0];
+        if (todayStr < batch.startDate) return false;
+        if (todayStr > batch.startDate) return true;
+      }
+      
+      // Parse releaseTime format: e.g. "09:45 AM" or "09:45"
+      const timeStr = batch.releaseTime.trim().toUpperCase();
+      const isPM = timeStr.includes('PM');
+      const isAM = timeStr.includes('AM');
+      const cleanTime = timeStr.replace(/(AM|PM)/gi, '').trim();
+      const [hStr, mStr] = cleanTime.split(':');
+      let hours = parseInt(hStr, 10) || 0;
+      const minutes = parseInt(mStr, 10) || 0;
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+
+      const releaseDate = new Date();
+      releaseDate.setHours(hours, minutes, 0, 0);
+
+      return now.getTime() >= releaseDate.getTime();
+    } catch {
+      return true;
+    }
   }
 
   /**

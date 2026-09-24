@@ -121,7 +121,7 @@ export const AssessorTodayAssessments: React.FC<AssessorTodayAssessmentsProps> =
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder={isRTL ? 'البحث بالاسم، الجواز، أو رقم APRO...' : 'Search by name, passport, or APRO...'}
+            placeholder={isRTL ? 'البحث بالاسم أو رقم الجواز...' : 'Search by name or passport...'}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7A2E3A] focus:border-[#7A2E3A]"
@@ -201,7 +201,7 @@ export const AssessorTodayAssessments: React.FC<AssessorTodayAssessmentsProps> =
                             {isRTL ? cand.fullNameAr : cand.fullNameEn}
                           </div>
                           <div className="text-xs text-gray-500 font-mono mt-0.5">
-                            {cand.aproReference} • {cand.passportNumber}
+                            {cand.passportNumber}
                           </div>
                         </div>
                       </div>

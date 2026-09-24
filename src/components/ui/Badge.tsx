@@ -21,9 +21,9 @@ export const Badge: React.FC<BadgeProps> = ({
   const variantClasses = {
     default: 'bg-stone-100 text-stone-700 border-stone-200',
     neutral: 'bg-stone-100 text-stone-700 border-stone-200',
-    maroon: 'bg-maroon-50 text-maroon-800 border-maroon-200',
-    gold: 'bg-gold-50 text-gold-800 border-gold-200',
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    maroon: 'bg-[#FDF2F4] text-[#A43950] border-[#F7D0D8]',
+    gold: 'bg-[#FDFBF5] text-[#946E20] border-[#EDDDA2]',
+    success: 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]',
     warning: 'bg-amber-50 text-amber-800 border-amber-200',
     danger: 'bg-rose-50 text-rose-800 border-rose-200',
     info: 'bg-sky-50 text-sky-800 border-sky-200',

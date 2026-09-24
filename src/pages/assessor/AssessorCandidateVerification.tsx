@@ -194,14 +194,14 @@ export const AssessorCandidateVerification: React.FC<AssessorCandidateVerificati
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-gray-700 mb-1">
-              {isRTL ? 'رقم جواز السفر أو الرقم المرجعي APRO' : 'Passport Number or APRO Reference ID'}
+              {isRTL ? 'رقم جواز السفر' : 'Passport Number'}
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder={isRTL ? 'مثال: FA8872190 أو APRO-SA-92813...' : 'e.g. FA8872190 or APRO-SA-92813...'}
+                  placeholder={isRTL ? 'مثال: FA8872190...' : 'e.g. FA8872190...'}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && performLookup(searchQuery)}
@@ -268,8 +268,8 @@ export const AssessorCandidateVerification: React.FC<AssessorCandidateVerificati
               </h3>
               <p className="text-xs text-rose-700 leading-relaxed">
                 {isRTL
-                  ? `المرشح ${unauthorizedCandidate.fullNameEn} (${unauthorizedCandidate.aproReference}) مسجل في المركز، ولكنه معين لمقيم آخر (${unauthorizedCandidate.assessorName || 'مقيم آخر'}). لا يمكنك بدء التقييم له دون تفويض صريح من مدير المركز.`
-                  : `Candidate ${unauthorizedCandidate.fullNameEn} (${unauthorizedCandidate.aproReference}) is registered in the center, but is paired with ${unauthorizedCandidate.assessorName || 'another assessor'}. You cannot conduct assessment for unassigned candidates.`}
+                  ? `المرشح ${unauthorizedCandidate.fullNameEn} (${unauthorizedCandidate.passportNumber}) مسجل في المركز، ولكنه معين لمقيم آخر (${unauthorizedCandidate.assessorName || 'مقيم آخر'}). لا يمكنك بدء التقييم له دون تفويض صريح من مدير المركز.`
+                  : `Candidate ${unauthorizedCandidate.fullNameEn} (${unauthorizedCandidate.passportNumber}) is registered in the center, but is paired with ${unauthorizedCandidate.assessorName || 'another assessor'}. You cannot conduct assessment for unassigned candidates.`}
               </p>
               <div className="pt-2 flex items-center gap-3">
                 <button
@@ -293,8 +293,8 @@ export const AssessorCandidateVerification: React.FC<AssessorCandidateVerificati
           </h3>
           <p className="text-xs text-amber-700 mt-1">
             {isRTL
-              ? 'تأكد من إدخال رقم الجواز أو الرمز المرجعي APRO بشكل صحيح، أو تحقق من تسجيل المرشح لدى قسم الاستقبال.'
-              : 'Please double-check the passport number or APRO reference ID. Verify candidate intake with Center Admin.'}
+              ? 'تأكد من إدخال رقم الجواز بشكل صحيح، أو تحقق من تسجيل المرشح لدى قسم الاستقبال.'
+              : 'Please double-check the passport number. Verify candidate intake with Center Admin.'}
           </p>
         </div>
       )}
@@ -348,10 +348,6 @@ export const AssessorCandidateVerification: React.FC<AssessorCandidateVerificati
                   <div>
                     <span className="text-xs text-gray-500">{isRTL ? 'رقم جواز السفر' : 'Passport Number'}</span>
                     <div className="text-sm font-bold font-mono text-[#7A2E3A]">{matchedCandidate.passportNumber}</div>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500">{isRTL ? 'الرقم المرجعي APRO' : 'APRO Reference ID'}</span>
-                    <div className="text-sm font-bold font-mono text-gray-800">{matchedCandidate.aproReference}</div>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500">{isRTL ? 'المهنة المعتمدة' : 'Trade / Occupation'}</span>

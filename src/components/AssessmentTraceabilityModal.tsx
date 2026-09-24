@@ -100,12 +100,12 @@ export const AssessmentTraceabilityModal: React.FC<AssessmentTraceabilityModalPr
         titleAr: 'تسجيل وقبول المترشح وحجز الموعد',
         category: 'Intake / Enrollment',
         timestamp: '2026-09-10 09:00:00 UTC',
-        actor: 'Self-Service / APRO Integration API',
+        actor: 'Self-Service / Central Registry API',
         actorRole: 'System Dispatcher',
         status: 'COMPLETED',
-        details: `Candidate allocated reservation with reference ${candidate?.aproReference || 'APRO-SA-92816'}. Verification criteria and passport validation queued.`,
+        details: `Candidate allocated reservation in batch ${candidate?.batchId || 'BAT-2026-001'}. Verification criteria and passport validation queued.`,
         metadata: {
-          'APRO Ref': candidate?.aproReference || 'APRO-SA-92816',
+          'Passport': candidate?.passportNumber || 'N/A',
           'Intake Batch': candidate?.batchId || 'BAT-2026-001',
           'Center Allocated': center?.nameEn || 'Riyadh Central Technical Hub'
         },

@@ -76,8 +76,8 @@ export const CenterDetails: React.FC<CenterDetailsProps> = ({
       const allLogs = StorageService.get<AuditLog[]>(STORAGE_KEYS.AUDIT, []);
       setAuditLogs(allLogs.filter(l => 
         l.centerId === found.id || 
-        l.details.toLowerCase().includes(found.nameEn.toLowerCase()) ||
-        l.details.toLowerCase().includes(found.code.toLowerCase())
+        (l.details && found.nameEn && l.details.toLowerCase().includes(found.nameEn.toLowerCase())) ||
+        (l.details && found.code && l.details.toLowerCase().includes(found.code.toLowerCase()))
       ));
     }
   };
@@ -125,10 +125,8 @@ export const CenterDetails: React.FC<CenterDetailsProps> = ({
   const tabs = [
     { id: 'overview', label: language === 'ar' ? 'نظرة عامة' : 'Overview' },
     { id: 'users', label: language === 'ar' ? `المستخدمون (${users.length})` : `Users (${users.length})` },
-    { id: 'schedules', label: language === 'ar' ? `الجداول (${schedules.length})` : `Schedules (${schedules.length})` },
     { id: 'batches', label: language === 'ar' ? `الدفعات (${batches.length})` : `Batches (${batches.length})` },
     { id: 'candidates', label: language === 'ar' ? `المترشحون (${candidates.length})` : `Candidates (${candidates.length})` },
-    { id: 'assessments', label: language === 'ar' ? `التقييمات (${assessments.length})` : `Assessments (${assessments.length})` },
     { id: 'results', label: language === 'ar' ? `النتائج (${results.length})` : `Results (${results.length})` },
     { id: 'activity', label: language === 'ar' ? `النشاط (${auditLogs.length})` : `Activity (${auditLogs.length})` },
   ];
@@ -249,9 +247,9 @@ export const CenterDetails: React.FC<CenterDetailsProps> = ({
           </div>
 
           <div className="bg-[#FFFCF8] p-3 rounded-lg border border-[#E8D9D2]">
-            <span className="text-[11px] text-[#806F6F] block">{language === 'ar' ? 'التقييمات' : 'Assessments'}</span>
+            <span className="text-[11px] text-[#806F6F] block">{language === 'ar' ? 'النتائج والتقييمات' : 'Evaluated Results'}</span>
             <span className="text-base font-bold text-[#3F3030] block mt-0.5">
-              {assessments.length}
+              {results.length}
             </span>
           </div>
 
@@ -344,12 +342,12 @@ export const CenterDetails: React.FC<CenterDetailsProps> = ({
                 <span>{language === 'ar' ? 'المهن المعتمدة للتقييم في هذا المركز' : 'Accredited Assessment Occupations'}</span>
               </h3>
               <div className="flex flex-wrap gap-2">
-                {center.occupationsSupported.map((occ, idx) => (
+                {(center.occupationsSupported || []).map((occ, idx) => (
                   <span
                     key={idx}
                     className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-[#7A2E3A] border border-[#E8D9D2] shadow-xs"
                   >
-                    <CheckCircle className="w-3.5 h-3.5 text-[#C9A24D] me-1.5" />
+                    <CheckCircle className="w-3.5 h-3.5 text-[#D4AF37] me-1.5" />
                     {occ}
                   </span>
                 ))}
@@ -612,8 +610,7 @@ export const CenterDetails: React.FC<CenterDetailsProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-start border-collapse">
                   <thead>
-                    <tr className="border-b border-[#E8D9D2] bg-[#FFFCF8] text-[#806F6F]">
-                      <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'رقم APRO' : 'APRO ID'}</th>
+                    <tr className="border-b border-[#E8D9D2] bg-white text-[#806F6F]">
                       <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'اسم المترشح' : 'Candidate Name'}</th>
                       <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'المهنة' : 'Occupation'}</th>
                       <th className="py-2.5 px-3 font-semibold text-start">{language === 'ar' ? 'الجواز / الهوية' : 'Passport / ID'}</th>
@@ -623,8 +620,7 @@ export const CenterDetails: React.FC<CenterDetailsProps> = ({
                   </thead>
                   <tbody className="divide-y divide-[#E8D9D2]">
                     {candidates.map(c => (
-                      <tr key={c.id} className="hover:bg-[#FFFCF8]/80 transition-colors">
-                        <td className="py-2.5 px-3 font-mono font-semibold text-[#7A2E3A]">{c.aproReference}</td>
+                      <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-2.5 px-3 font-semibold text-[#3F3030]">{language === 'ar' ? c.fullNameAr : c.fullNameEn}</td>
                         <td className="py-2.5 px-3 text-[#806F6F]">{c.occupation}</td>
                         <td className="py-2.5 px-3 text-[#806F6F] font-mono">{c.passportNumber}</td>
@@ -756,7 +752,7 @@ export const CenterDetails: React.FC<CenterDetailsProps> = ({
                       <tr key={r.id} className="hover:bg-[#FFFCF8]/80 transition-colors">
                         <td className="py-2.5 px-3">
                           <span className="font-semibold text-[#3F3030] block">{r.candidateName || r.candidateId}</span>
-                          <span className="font-mono text-[10px] text-[#806F6F]">{r.aproReference || '—'}</span>
+                          <span className="font-mono text-[10px] text-[#806F6F]">{r.candidateId}</span>
                         </td>
                         <td className="py-2.5 px-3 text-[#806F6F]">{r.occupation || '—'}</td>
                         <td className="py-2.5 px-3 font-mono font-medium">{r.practicalScore !== undefined ? `${r.practicalScore}%` : '—'}</td>

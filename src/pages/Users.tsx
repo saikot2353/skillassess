@@ -29,8 +29,11 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
   const { showToast } = useToast();
   const { user: currentUser } = useAuth();
 
-  const userCenterId = currentUser?.centerId || 'ctr-sa-1';
+  const isGlobalAdmin = currentUser?.role === 'GLOBAL_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+  const isCountryAdmin = currentUser?.role === 'COUNTRY_ADMIN' || currentUser?.role === 'COUNTRY_ACCOUNT';
   const isCenterAdmin = currentUser?.role === 'CENTER_ADMIN';
+  const userCenterId = currentUser?.centerId || 'ctr-sa-1';
+  const userCountryId = currentUser?.countryId || 'cnt-sa';
 
   const [users, setUsers] = useState<User[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -56,7 +59,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     email: '',
     username: '',
     password: '',
-    role: (isCenterAdmin ? 'ASSESSOR' : 'CENTER_ADMIN') as Role,
+    role: (isCenterAdmin ? 'ASSESSOR' : isCountryAdmin ? 'CENTER_ADMIN' : 'CENTER_ADMIN') as Role,
     countryId: '',
     centerId: '',
     phone: '',
@@ -72,13 +75,17 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     const loadedCountries = StorageService.get<Country[]>(STORAGE_KEYS.COUNTRIES, []);
     const loadedCenters = StorageService.get<Center[]>(STORAGE_KEYS.CENTERS, []);
 
+    const countryCenterIds = loadedCenters.filter(c => c.countryId === userCountryId).map(c => c.id);
+
     const filteredUsers = isCenterAdmin 
       ? loadedUsers.filter(u => u.id === currentUser?.id || ((u.role === 'ASSESSOR' || u.role === 'SUPPORT_STAFF' || u.role === 'ORGANIZER' || u.role === 'CBT_TEST_SUPPORT') && u.centerId === userCenterId))
+      : isCountryAdmin
+      ? loadedUsers.filter(u => u.id === currentUser?.id || u.countryId === userCountryId || (u.centerId && countryCenterIds.includes(u.centerId)))
       : loadedUsers;
 
     setUsers(filteredUsers);
-    setCountries(loadedCountries);
-    setCenters(loadedCenters);
+    setCountries(isCountryAdmin ? loadedCountries.filter(c => c.id === userCountryId) : loadedCountries);
+    setCenters(isCountryAdmin ? loadedCenters.filter(c => c.countryId === userCountryId) : loadedCenters);
   };
 
   useEffect(() => {
@@ -167,10 +174,10 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
       errors.email = 'An account with this email address already exists.';
     }
 
-    if (formData.role === 'COUNTRY_ACCOUNT' && !formData.countryId) {
+    if ((formData.role === 'COUNTRY_ACCOUNT' || formData.role === 'COUNTRY_ADMIN') && !formData.countryId) {
       errors.countryId = 'Country allocation is mandatory for this role';
     }
-    if (['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF', 'ORGANIZER'].includes(formData.role) && !isCenterAdmin && !formData.centerId) {
+    if (['CENTER_ADMIN', 'ASSESSOR', 'SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT'].includes(formData.role) && !isCenterAdmin && !formData.centerId) {
       errors.centerId = 'Center allocation is mandatory for this role';
     }
 
@@ -188,8 +195,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
         name: formData.name.trim(),
         email: formData.email.trim(),
         role: formData.role,
-        countryId: formData.role === 'SUPER_ADMIN' ? undefined : (isCenterAdmin ? (currentUser?.countryId || 'cnt-sa') : (formData.countryId || undefined)),
-        centerId: ['SUPER_ADMIN', 'COUNTRY_ACCOUNT'].includes(formData.role) ? undefined : (isCenterAdmin ? userCenterId : (formData.centerId || undefined)),
+        countryId: (formData.role === 'SUPER_ADMIN' || formData.role === 'GLOBAL_ADMIN') ? undefined : (isCenterAdmin ? (currentUser?.countryId || 'cnt-sa') : (formData.countryId || undefined)),
+        centerId: ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'COUNTRY_ACCOUNT', 'COUNTRY_ADMIN'].includes(formData.role) ? undefined : (isCenterAdmin ? userCenterId : (formData.centerId || undefined)),
         phone: formData.phone.trim(),
         status: formData.status,
       };
@@ -200,15 +207,15 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
     } else {
       const targetRole = isCenterAdmin ? (['SUPPORT_STAFF', 'ORGANIZER', 'CBT_TEST_SUPPORT'].includes(formData.role) ? formData.role : 'ASSESSOR') : formData.role;
       const cleanUsername = formData.username.trim() || formData.email.trim().split('@')[0];
-      const initialPassword = formData.password.trim() || (targetRole === 'ASSESSOR' ? 'Demo@12345' : 'SA360@123');
+      const initialPassword = formData.password.trim() || (targetRole === 'ASSESSOR' ? 'Demo@12345' : targetRole === 'COUNTRY_ACCOUNT' || targetRole === 'COUNTRY_ADMIN' ? 'country123' : 'SA360@123');
       const newUser: User = {
         id: `usr-${Date.now()}`,
         name: formData.name.trim(),
         email: formData.email.trim(),
         username: cleanUsername,
         role: targetRole,
-        countryId: targetRole === 'SUPER_ADMIN' ? undefined : (isCenterAdmin ? (currentUser?.countryId || 'cnt-sa') : (formData.countryId || undefined)),
-        centerId: ['SUPER_ADMIN', 'COUNTRY_ACCOUNT'].includes(targetRole) ? undefined : (isCenterAdmin ? userCenterId : (formData.centerId || undefined)),
+        countryId: (targetRole === 'SUPER_ADMIN' || targetRole === 'GLOBAL_ADMIN') ? undefined : (isCenterAdmin ? (currentUser?.countryId || 'cnt-sa') : (formData.countryId || undefined)),
+        centerId: ['SUPER_ADMIN', 'GLOBAL_ADMIN', 'COUNTRY_ACCOUNT', 'COUNTRY_ADMIN'].includes(targetRole) ? undefined : (isCenterAdmin ? userCenterId : (formData.centerId || undefined)),
         phone: formData.phone.trim(),
         status: formData.status,
         password: initialPassword,
@@ -283,8 +290,10 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
 
   const getRoleBadgeVariant = (role: Role) => {
     switch (role) {
+      case 'GLOBAL_ADMIN':
       case 'SUPER_ADMIN':
         return 'maroon';
+      case 'COUNTRY_ADMIN':
       case 'COUNTRY_ACCOUNT':
         return 'gold';
       case 'CENTER_ADMIN':
@@ -310,7 +319,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
   };
 
   const getScopeName = (u: User) => {
-    if (u.role === 'SUPER_ADMIN') {
+    if (u.role === 'SUPER_ADMIN' || u.role === 'GLOBAL_ADMIN') {
       return language === 'ar' ? 'إشراف وحوكمة عامة للنظام' : 'Global System Governance';
     }
     const cnt = getScopeCountry(u);
@@ -335,7 +344,11 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
       (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (u.phone && u.phone.includes(searchTerm));
 
-    const matchesRole = activeRoleTab === 'ALL' || u.role === activeRoleTab;
+    const matchesRole = activeRoleTab === 'ALL' ||
+      (activeRoleTab === 'COUNTRY_ACCOUNT' || activeRoleTab === 'COUNTRY_ADMIN' ? (u.role === 'COUNTRY_ACCOUNT' || u.role === 'COUNTRY_ADMIN') :
+       activeRoleTab === 'SUPER_ADMIN' || activeRoleTab === 'GLOBAL_ADMIN' ? (u.role === 'SUPER_ADMIN' || u.role === 'GLOBAL_ADMIN') :
+       u.role === activeRoleTab);
+
     const matchesStatus = statusFilter === 'ALL' || u.status === statusFilter;
     const matchesCountry = countryFilter === 'ALL' || u.countryId === countryFilter;
     return matchesSearch && matchesRole && matchesStatus && matchesCountry;
@@ -345,8 +358,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
 
   const roleTabCounts = {
     ALL: users.length,
-    SUPER_ADMIN: users.filter(u => u.role === 'SUPER_ADMIN').length,
-    COUNTRY_ACCOUNT: users.filter(u => u.role === 'COUNTRY_ACCOUNT').length,
+    SUPER_ADMIN: users.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'GLOBAL_ADMIN').length,
+    COUNTRY_ACCOUNT: users.filter(u => u.role === 'COUNTRY_ACCOUNT' || u.role === 'COUNTRY_ADMIN').length,
     CENTER_ADMIN: users.filter(u => u.role === 'CENTER_ADMIN').length,
     ASSESSOR: users.filter(u => u.role === 'ASSESSOR').length,
     SUPPORT_STAFF: users.filter(u => u.role === 'SUPPORT_STAFF').length,
@@ -475,14 +488,26 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
           { label: t.usersModule.title },
         ]}
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleOpenAdd(activeRoleTab === 'ALL' ? 'CENTER_ADMIN' : activeRoleTab)}
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            {t.usersModule.addNew}
-          </Button>
+          <div className="flex items-center gap-2">
+            {isGlobalAdmin && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleOpenAdd('COUNTRY_ACCOUNT')}
+                leftIcon={<Globe className="w-4 h-4 text-[#7A2E3A]" />}
+              >
+                {language === 'ar' ? '+ تعيين مدير دولة' : '+ Provision Country Admin'}
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleOpenAdd(activeRoleTab === 'ALL' ? 'CENTER_ADMIN' : activeRoleTab)}
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              {t.usersModule.addNew}
+            </Button>
+          </div>
         }
       />
 
@@ -496,15 +521,28 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
               : 'text-[#806F6F] hover:text-[#3F3030] hover:bg-white'
           }`}
         >
-          {language === 'ar' ? 'جميع حسابات المركز' : 'All Center Staff'} ({roleTabCounts.ALL})
+          {isCenterAdmin ? (language === 'ar' ? 'جميع حسابات المركز' : 'All Center Staff') : (language === 'ar' ? 'جميع المستخدمين' : 'All Users')} ({roleTabCounts.ALL})
         </button>
+
+        {isGlobalAdmin && (
+          <button
+            onClick={() => { setActiveRoleTab('SUPER_ADMIN'); setCurrentPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeRoleTab === 'SUPER_ADMIN' || activeRoleTab === 'GLOBAL_ADMIN'
+                ? 'bg-[#7A2E3A] text-white shadow-xs'
+                : 'text-[#806F6F] hover:text-[#3F3030] hover:bg-white'
+            }`}
+          >
+            {t.roles.SUPER_ADMIN} ({roleTabCounts.SUPER_ADMIN})
+          </button>
+        )}
 
         {!isCenterAdmin && (
           <>
             <button
               onClick={() => { setActiveRoleTab('COUNTRY_ACCOUNT'); setCurrentPage(1); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeRoleTab === 'COUNTRY_ACCOUNT'
+                activeRoleTab === 'COUNTRY_ACCOUNT' || activeRoleTab === 'COUNTRY_ADMIN'
                   ? 'bg-[#7A2E3A] text-white shadow-xs'
                   : 'text-[#806F6F] hover:text-[#3F3030] hover:bg-white'
               }`}
@@ -709,6 +747,14 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
                         { value: 'ORGANIZER', label: `3. ${t.roles.ORGANIZER}` },
                         { value: 'CBT_TEST_SUPPORT', label: `4. ${t.roles.CBT_TEST_SUPPORT}` },
                       ]
+                    : isCountryAdmin
+                    ? [
+                        { value: 'CENTER_ADMIN', label: `1. ${t.roles.CENTER_ADMIN}` },
+                        { value: 'ASSESSOR', label: `2. ${t.roles.ASSESSOR}` },
+                        { value: 'SUPPORT_STAFF', label: `3. ${t.roles.SUPPORT_STAFF}` },
+                        { value: 'ORGANIZER', label: `4. ${t.roles.ORGANIZER}` },
+                        { value: 'CBT_TEST_SUPPORT', label: `5. ${t.roles.CBT_TEST_SUPPORT}` },
+                      ]
                     : [
                         { value: 'SUPER_ADMIN', label: `1. ${t.roles.SUPER_ADMIN}` },
                         { value: 'COUNTRY_ACCOUNT', label: `2. ${t.roles.COUNTRY_ACCOUNT}` },
@@ -732,13 +778,14 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
                 </div>
               ) : (
                 <>
-                  {formData.role !== 'SUPER_ADMIN' && (
+                  {formData.role !== 'SUPER_ADMIN' && formData.role !== 'GLOBAL_ADMIN' && (
                     <Select
                       label={t.usersModule.linkCountry}
                       required
                       value={formData.countryId}
                       onChange={e => handleCountryChangeInForm(e.target.value)}
                       error={formErrors.countryId}
+                      disabled={isCountryAdmin}
                       options={countries.map(c => ({
                         value: c.id,
                         label: `${c.flagEmoji} ${language === 'ar' ? c.nameAr : c.nameEn}`,
@@ -942,11 +989,13 @@ export const UsersPage: React.FC<UsersPageProps> = ({ onNavigate }) => {
             <div className="p-3 rounded-lg bg-[#F8ECEE]/60 border border-[#E8D9D2] text-xs text-[#3F3030] space-y-1">
               <span className="font-semibold block">{language === 'ar' ? 'الصلاحيات والوظائف التنفيذية' : 'Executive Role Governance'}</span>
               <p className="text-[#806F6F] leading-relaxed">
-                {viewingUser.role === 'SUPER_ADMIN' && 'Full omniscient oversight of all countries, centers, candidate registries, results validation, and lottery triggers.'}
-                {viewingUser.role === 'COUNTRY_ACCOUNT' && 'National jurisdiction authority over assessment centers, center administrative appointments, and country reports.'}
+                {(viewingUser.role === 'SUPER_ADMIN' || viewingUser.role === 'GLOBAL_ADMIN') && 'Full omniscient oversight of all countries, centers, candidate registries, results validation, global settings, and hierarchical audit trails.'}
+                {(viewingUser.role === 'COUNTRY_ACCOUNT' || viewingUser.role === 'COUNTRY_ADMIN') && 'National jurisdiction authority over assessment centers, center administrative appointments, and country reports.'}
                 {viewingUser.role === 'CENTER_ADMIN' && 'Direct center operational management, daily batch assignments, local assessor scheduling, and facility readiness.'}
                 {viewingUser.role === 'ASSESSOR' && 'Authorized practical task scoring, technical rubric evaluation, and blind candidate evaluation.'}
                 {viewingUser.role === 'SUPPORT_STAFF' && 'Candidate reception, biometric verification assistance, and technical workshop support.'}
+                {viewingUser.role === 'ORGANIZER' && 'Candidate organization, queue coordination, and assessment room scheduling.'}
+                {viewingUser.role === 'CBT_TEST_SUPPORT' && 'CBT test room supervision, workstation verification, and technical support.'}
               </p>
             </div>
           </div>
