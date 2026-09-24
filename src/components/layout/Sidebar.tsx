@@ -5,7 +5,7 @@ import {
   Award, Activity, MessageSquareWarning, ShieldAlert, Settings2,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X,
   FileText, CreditCard, Sliders, Shield, ShieldCheck, Camera, UserCircle,
-  Bell, Sparkles, Wrench, CheckCircle2, BarChart3
+  Bell, Sparkles, Wrench, CheckCircle2, BarChart3, Radio
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -210,6 +210,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: LayoutDashboard,
     },
     {
+      id: 'live-status',
+      labelKey: 'liveStatus',
+      path: '/live-status',
+      icon: Radio,
+    },
+    {
+      id: 'verification-queue',
+      labelKey: 'verificationQueue',
+      path: '/verification-queue',
+      icon: ShieldCheck,
+    },
+    {
       id: 'batches',
       labelKey: 'batchManagement',
       path: '/batches',
@@ -226,12 +238,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKey: 'assessorList',
       path: '/assessors',
       icon: Users2,
-    },
-    {
-      id: 'analytics',
-      labelKey: 'assessorAnalytics',
-      path: '/assessors?tab=analytics',
-      icon: BarChart3,
     },
     {
       id: 'support-staff',

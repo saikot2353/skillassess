@@ -141,8 +141,10 @@ export const AssessorsPage: React.FC<AssessorsPageProps> = ({ onNavigate }) => {
   const validateForm = () => {
     const errs: Record<string, string> = {};
     if (!formData.name.trim()) errs.name = 'Full name is required';
-    if (formData.email.trim() && !formData.email.includes('@')) {
-      errs.email = 'Valid email is required if provided';
+    if (!formData.email.trim()) {
+      errs.email = 'Official Email is required';
+    } else if (!formData.email.includes('@') || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errs.email = 'Valid official email is required';
     }
 
     const allUsers = StorageService.get<User[]>(STORAGE_KEYS.USERS, []);
@@ -233,7 +235,7 @@ Portal URL: ${window.location.origin}`;
       username: cleanUsername,
       email: cleanEmail,
       password: demoPassword,
-      role: 'Assessor (ISO 17024 Accredited)',
+      role: 'Assessor',
       centerId: userCenterId,
       centerName: assignedCenter ? `${assignedCenter.nameEn} (${assignedCenter.code})` : userCenterId,
     });
@@ -411,7 +413,6 @@ Portal URL: ${window.location.origin}`;
                             </div>
                             <div>
                               <span>{ass.name}</span>
-                              <span className="text-[10px] text-[#806F6F] block">ISO 17024 Accredited</span>
                             </div>
                           </div>
                         </td>
@@ -630,7 +631,6 @@ Portal URL: ${window.location.origin}`;
         onClose={() => setIsAddOpen(false)}
         maxWidth="md"
         title="Create Center Assessor Account"
-        subtitle={`Accredited evaluator assigned exclusively to Center: ${userCenterId}`}
         infoNotice="User credentials and verification will be automatically generated and bound to current center governance."
         footer={
           <div className="flex items-center gap-2">
@@ -662,11 +662,12 @@ Portal URL: ${window.location.origin}`;
               error={formErrors.username}
             />
             <Input
-              label="Official Email (Optional)"
+              label="Official Email*"
+              required
               type="email"
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
-              placeholder="Leave blank to auto-generate"
+              placeholder="e.g. assessor@example.com"
               error={formErrors.email}
             />
           </div>
@@ -696,7 +697,7 @@ Portal URL: ${window.location.origin}`;
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-[#806F6F]">Assigned Role:</span>
               <span className="font-semibold text-[#7A2E3A] px-2 py-0.5 rounded bg-[#F8ECEE]">
-                Assessor (ISO 17024 Accredited)
+                Assessor
               </span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
@@ -876,7 +877,7 @@ Portal URL: ${window.location.origin}`;
                     username: viewCredentialsAssessor.username || viewCredentialsAssessor.email.split('@')[0],
                     email: viewCredentialsAssessor.email,
                     password: viewCredentialsAssessor.password || viewCredentialsAssessor.tempPassword || 'Demo@12345',
-                    role: 'Assessor (ISO 17024 Accredited)',
+                    role: 'Assessor',
                     centerName: ctr ? `${ctr.nameEn} (${ctr.code})` : (viewCredentialsAssessor.centerId || 'Center Hub'),
                   });
                 }}
@@ -899,7 +900,7 @@ Portal URL: ${window.location.origin}`;
                 </div>
                 <div>
                   <span className="text-[#806F6F] block">Role:</span>
-                  <strong className="text-[#7A2E3A]">Assessor (ISO 17024)</strong>
+                  <strong className="text-[#7A2E3A]">Assessor</strong>
                 </div>
                 <div>
                   <span className="text-[#806F6F] block">Assigned Center:</span>
@@ -1006,7 +1007,7 @@ Portal URL: ${window.location.origin}`;
                     username: viewingAssessor.username || viewingAssessor.email.split('@')[0],
                     email: viewingAssessor.email,
                     password: viewingAssessor.password || viewingAssessor.tempPassword || 'Demo@12345',
-                    role: 'Assessor (ISO 17024 Accredited)',
+                    role: 'Assessor',
                     centerName: ctr ? `${ctr.nameEn} (${ctr.code})` : (viewingAssessor.centerId || 'Center Hub'),
                   });
                 }}
@@ -1024,7 +1025,7 @@ Portal URL: ${window.location.origin}`;
             <div className="grid grid-cols-2 gap-3 p-3.5 rounded-lg bg-[#FFFCF8] border border-[#E8D9D2]">
               <div>
                 <span className="text-[#806F6F] block">Role:</span>
-                <strong className="text-[#7A2E3A]">Assessor (ISO 17024)</strong>
+                <strong className="text-[#7A2E3A]">Assessor</strong>
               </div>
               <div>
                 <span className="text-[#806F6F] block">Assigned Center:</span>

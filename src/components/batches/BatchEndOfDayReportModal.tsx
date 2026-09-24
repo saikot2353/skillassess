@@ -55,10 +55,7 @@ export const BatchEndOfDayReportModal: React.FC<BatchEndOfDayReportModalProps> =
     >
       <div className="space-y-5">
         {/* Actions bar for Print and Download */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#E8D9D2]">
-          <div className="text-xs text-[#806F6F]">
-            {isRTL ? 'تقرير رسمي معتمد لجميع مرشحي الدفعة الذين أتموا مراحل التقييم.' : 'Official certified dossier of all candidate examinations completed in this cohort.'}
-          </div>
+        <div className="flex items-center justify-end pb-3 border-b border-[#E8D9D2]">
           <div className="flex items-center gap-2">
             <Button
               variant="secondary"
@@ -95,14 +92,6 @@ export const BatchEndOfDayReportModal: React.FC<BatchEndOfDayReportModalProps> =
                   International Vocational Assessment & Accreditation Registry • ISO/IEC 17024
                 </p>
               </div>
-            </div>
-            <div className="text-end">
-              <span className="px-2.5 py-1 rounded bg-[#FBF6E8] text-[#C9A24D] border border-[#E8D9D2] font-mono text-xs font-bold block">
-                COHORT DOSSIER
-              </span>
-              <span className="text-[10px] text-[#806F6F] font-mono mt-1 block">
-                Ref: {batch.batchNumber}-EOD
-              </span>
             </div>
           </div>
 
@@ -193,36 +182,6 @@ export const BatchEndOfDayReportModal: React.FC<BatchEndOfDayReportModalProps> =
                 )}
               </tbody>
             </table>
-          </div>
-
-          {/* Official Signatures and Audit Seals */}
-          <div className="pt-6 border-t border-[#E8D9D2] grid grid-cols-3 gap-6 text-center text-xs">
-            <div className="space-y-4">
-              <div className="font-semibold text-[#3F3030]">Center Assessment Director</div>
-              <div className="h-10 border-b border-dashed border-stone-300 flex items-end justify-center pb-1 text-[11px] font-serif italic text-stone-600">
-                Eng. Tariq Al-Ghamdi
-              </div>
-              <div className="text-[10px] text-[#806F6F]">Signature & Date</div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="font-semibold text-[#3F3030]">Lead Accredited Assessor</div>
-              <div className="h-10 border-b border-dashed border-stone-300 flex items-end justify-center pb-1 text-[11px] font-serif italic text-stone-600">
-                Eng. Fahad Al-Otaibi
-              </div>
-              <div className="text-[10px] text-[#806F6F]">Accreditation ID: ISO-17024-SA</div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="font-semibold text-[#3F3030]">Official Program Seal</div>
-              <div className="h-10 flex items-center justify-center">
-                <div className="px-3 py-1 rounded-full border border-emerald-500 bg-emerald-50 text-emerald-800 font-mono text-[10px] font-bold flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>SVP CERTIFIED IMMUTABLE</span>
-                </div>
-              </div>
-              <div className="text-[10px] text-[#806F6F]">Audit Hash: SHA-256 Validated</div>
-            </div>
           </div>
         </div>
 

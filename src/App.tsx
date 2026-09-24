@@ -38,6 +38,7 @@ import { AssessorsPage } from './pages/AssessorsPage';
 import { SupportStaffPage } from './pages/SupportStaffPage';
 import { AssessmentMonitoringPage } from './pages/AssessmentMonitoringPage';
 import { PhotoVerificationQueuePage } from './pages/PhotoVerificationQueuePage';
+import { LiveStatusPage } from './pages/LiveStatusPage';
 
 // Phase 04 Assessor Pages
 import { AssessorDashboard } from './pages/assessor/AssessorDashboard';
@@ -228,6 +229,14 @@ const RouterContent: React.FC = () => {
           </ProtectedRoute>
         );
 
+      case '/live-status':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'GLOBAL_ADMIN', 'COUNTRY_ACCOUNT', 'CENTER_ADMIN', 'SUPPORT_STAFF']} onNavigate={navigate}>
+            <LiveStatusPage onNavigate={navigate} />
+          </ProtectedRoute>
+        );
+
+      case '/verification-queue':
       case '/photo-verification-queue':
       case '/photo-queue':
         return (

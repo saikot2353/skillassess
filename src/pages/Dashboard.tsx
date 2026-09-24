@@ -1763,13 +1763,22 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
     const pausedCandidatesCount = centerCandidates.filter(c => c.isPaused || c.status === 'PAUSED' || c.status === 'PAUSED_PENDING_VERIFICATION').length;
 
     // Filtered Center KPIs (Strictly hiding Enrolled, CBT, Practical, Pending Eval, Results Submitted, Locked Results, and Schedules)
-    const centerKpis = [
-      { id: 'assessors', label: language === 'ar' ? 'إجمالي المقيمين' : 'Total Assessors', value: totalAssessors, badge: 'Accredited', icon: UserCheck, link: '/assessors', color: 'maroon' },
-      { id: 'staff', label: language === 'ar' ? 'فريق الدعم' : 'Support Staff', value: supportStaffCount, badge: 'On Site', icon: Users2, link: '/support-staff', color: 'gold' },
-      { id: 'batches', label: language === 'ar' ? 'الدفعات النشطة' : 'Active Batches', value: activeBatchesCount, badge: 'Operational', icon: Layers, link: '/batches', color: 'gold' },
-      { id: 'candidates', label: language === 'ar' ? 'إجمالي المرشحين' : 'Total Candidates', value: totalCandidatesCount, badge: 'Center Pool', icon: Users2, link: '/candidates', color: 'maroon' },
-      { id: 'capacity', label: language === 'ar' ? 'السعة التشغيلية' : 'Center Capacity', value: currentCenter.capacity || 120, badge: 'Seats Available', icon: Building2, link: '/batches', color: 'gold' },
-      { id: 'verificationQueue', label: language === 'ar' ? 'طابور التحقق' : 'Verification Queue', value: pendingPhotoReviewCount, badge: `${pendingPhotoReviewCount} Pending`, icon: ShieldCheck, onClick: () => setIsCenterPhotoQueueOpen(true), color: 'maroon' },
+    const centerKpis: Array<{
+      id: string;
+      label: string;
+      value: number;
+      badge: string;
+      icon: any;
+      link?: string;
+      onClick?: () => void;
+      color: string;
+    }> = [
+      { id: 'assessors', label: language === 'ar' ? 'إجمالي المقيمين' : 'Total Assessors', value: totalAssessors, badge: '', icon: UserCheck, link: '/assessors', color: 'maroon' },
+      { id: 'staff', label: language === 'ar' ? 'فريق الدعم' : 'Support Staff', value: supportStaffCount, badge: '', icon: Users2, link: '/support-staff', color: 'gold' },
+      { id: 'batches', label: language === 'ar' ? 'الدفعات النشطة' : 'Active Batches', value: activeBatchesCount, badge: '', icon: Layers, link: '/batches', color: 'gold' },
+      { id: 'candidates', label: language === 'ar' ? 'إجمالي المرشحين' : 'Total Candidates', value: totalCandidatesCount, badge: '', icon: Users2, link: '/candidates', color: 'maroon' },
+      { id: 'capacity', label: language === 'ar' ? 'السعة التشغيلية' : 'Center Capacity', value: currentCenter.capacity || 120, badge: '', icon: Building2, link: '/batches', color: 'gold' },
+      { id: 'verificationQueue', label: language === 'ar' ? 'طابور التحقق' : 'Verification Queue', value: pendingPhotoReviewCount, badge: '', icon: ShieldCheck, link: '/verification-queue', color: 'maroon' },
     ];
 
     // Center Pipeline Stages (Step 1 updated to "Step 1 – Check In")
@@ -1867,7 +1876,7 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
 
           <button
             type="button"
-            onClick={() => setIsCenterPhotoQueueOpen(true)}
+            onClick={() => onNavigate('/verification-queue')}
             className="p-3 rounded-lg border border-[#E8D9D2] bg-white hover:bg-[#F8ECEE]/50 hover:border-[#7A2E3A]/40 transition-all text-start flex items-center gap-3 shadow-sm group relative"
           >
             <div className="w-8 h-8 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -1945,8 +1954,10 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
                       {card.value}
                     </div>
                     <div className="mt-1 flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-[#806F6F]">{card.badge}</span>
-                      <ArrowUpRight className="w-3 h-3 text-[#C9A24D] opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {card.badge ? (
+                        <span className="text-[10px] font-medium text-[#806F6F]">{card.badge}</span>
+                      ) : <span />}
+                      <ArrowUpRight className="w-3 h-3 text-[#C9A24D] opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                     </div>
                   </div>
                 </div>
@@ -1986,85 +1997,10 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
           </div>
         </div>
 
-        {/* Center Operations Grid: Photo Verification Queue & Live Batch Monitoring */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Widget 1: Photo Verification Queue Card */}
+        {/* Center Operations: Live Batch Progression Monitoring */}
+        <div className="space-y-4">
+          {/* Widget: Batch Live Monitoring & Stage Breakdown Card */}
           <div className="border border-[#E8D9D2] rounded-xl bg-white p-4 shadow-[0_1px_3px_rgba(63,48,48,0.03)] space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#F8ECEE] text-[#A43950] flex items-center justify-center shrink-0">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#3F3030] uppercase tracking-wider">
-                      {language === 'ar' ? 'طابور التحقق من الصور' : 'Photo Verification Queue'}
-                    </h4>
-                    <span className="text-[10px] text-[#806F6F]">
-                      {language === 'ar' ? 'المطابقة الحية الثنائية للصور' : 'Side-by-side biometric audit'}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#F8ECEE] text-[#A43950] border border-[#E8D9D2]">
-                    🔔 {pendingPhotoReviewCount} {language === 'ar' ? 'معلق' : 'Pending'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2 max-h-56 overflow-y-auto">
-                {pendingPhotoReviewCandidates.length === 0 ? (
-                  <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-100 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-                    <span className="text-xs font-bold text-emerald-800 block">
-                      {language === 'ar' ? 'جميع صور المرشحين معتمدة ومطابقة' : 'All Candidate Photos Verified'}
-                    </span>
-                    <span className="text-[10px] text-emerald-700">
-                      {language === 'ar' ? 'لا يوجد مرشحون متوقفون بانتظار التدقيق' : 'Zero verification backlog in this center.'}
-                    </span>
-                  </div>
-                ) : (
-                  pendingPhotoReviewCandidates.slice(0, 4).map(cand => (
-                    <div 
-                      key={cand.id} 
-                      onClick={() => setIsCenterPhotoQueueOpen(true)}
-                      className="p-2 rounded-lg border border-[#E8D9D2] hover:border-[#A43950] hover:bg-[#FFFCF8] transition-all cursor-pointer flex items-center justify-between gap-2 text-xs"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-stone-100 border border-[#E8D9D2] overflow-hidden shrink-0">
-                          <img 
-                            src={cand.passportVerificationPhoto || cand.photoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80'} 
-                            alt={cand.fullNameEn} 
-                            className="w-full h-full object-cover" 
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-semibold text-[#3F3030] truncate">{cand.fullNameEn}</div>
-                          <div className="text-[10px] text-[#806F6F] font-mono">{cand.passportNumber}</div>
-                        </div>
-                      </div>
-                      <div className="shrink-0 flex items-center gap-1.5">
-                        <StatusBadge status={cand.status} />
-                        <span className="text-[10px] font-bold text-[#A43950] hover:underline">
-                          Review →
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onNavigate ? onNavigate('/photo-verification-queue') : setIsCenterPhotoQueueOpen(true)}
-                className="w-full py-2 rounded-lg text-xs font-bold bg-[#F8ECEE] text-[#A43950] hover:bg-[#F2DEE2] transition-colors flex items-center justify-center gap-1.5 border border-[#E8D9D2]"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{language === 'ar' ? 'فتح شاشة المراجعة والمطابقة الكاملة' : 'Open Photo Verification Queue'}</span>
-              </button>
-            </div>
-
-            {/* Widget 2: Batch Live Monitoring & Stage Breakdown Card */}
-            <div className="border border-[#E8D9D2] rounded-xl bg-white p-4 shadow-[0_1px_3px_rgba(63,48,48,0.03)] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-[#FBF6E8] text-[#C9A24D] flex items-center justify-center shrink-0">
@@ -2141,20 +2077,9 @@ export const Dashboard: React.FC<{ onNavigate: (path: string) => void }> = ({ on
                     );
                   })
                 )}
-              </div>
             </div>
           </div>
-
-        {/* Live Photo Verification Queue Modal */}
-        <PhotoVerificationQueueModal
-          isOpen={isCenterPhotoQueueOpen}
-          onClose={() => {
-            setIsCenterPhotoQueueOpen(false);
-            loadData();
-          }}
-          centerId={userCenterId}
-          onUpdated={loadData}
-        />
+        </div>
       </div>
     );
   }

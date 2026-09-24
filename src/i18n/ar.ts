@@ -23,6 +23,8 @@ export const ar = {
     assessmentManagement: 'إدارة عمليات التقييم',
     schedules: 'الجداول الزمنية',
     batches: 'دفعات المرشحين',
+    liveStatus: 'الحالة المباشرة للمرشحين',
+    verificationQueue: 'طابور التحقق من الصور',
     candidates: 'سجل المرشحين',
     assessments: 'جلسات التقييم',
     results: 'إدارة النتائج',

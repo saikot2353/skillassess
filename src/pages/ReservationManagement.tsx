@@ -700,7 +700,6 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
     <div className="space-y-6 animate-in fade-in duration-150">
       <PageHeader
         title={language === 'ar' ? 'إدارة واستيراد الحجوزات' : 'Reservation Import & Preload Management'}
-        subtitle={language === 'ar' ? 'معالجة بيانات الحجوزات المعتمدة، التحقق من الجوازات المكررة، وتجهيز الدفعات قبل التسجيل' : 'Process reservation rosters, validate duplicate passports and cancelled records, distribute candidates to assessors, and preload candidates.'}
         breadcrumbs={[
           { label: t.nav.dashboard, href: '/dashboard' },
           { label: language === 'ar' ? 'الحجوزات' : 'Reservations' },
@@ -711,34 +710,6 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
 
       {activeTab === 'import' ? (
         <div className="space-y-5">
-          {/* Top Info Notice */}
-          <div className="p-4 rounded-xl border border-[#E8D9D2] bg-white shadow-[0_1px_3px_rgba(63,48,48,0.03)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-[#F8ECEE] text-[#7A2E3A] flex items-center justify-center shrink-0 border border-[#E8D9D2]">
-                <FileSpreadsheet className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-[#3F3030]">
-                  {language === 'ar' ? 'منفذ معالجة بيانات الحجوزات والتحقق المسبق' : 'Center Reservation Intake Pipeline'}
-                </h4>
-                <p className="text-[11px] text-[#806F6F] mt-0.5">
-                  {language === 'ar' 
-                    ? 'الصق بيانات الحجوزات بالأعمدة العشرة المعتمدة. سيقوم النظام بالتوزيع المتوازن وتوليد نموذج التقييم العملي المعتمد لكل مرشح.' 
-                    : 'Paste TSV/CSV roster data matching the 10 sequential SVP columns. Generates official Practical Evaluation Form - L1 for each candidate.'}
-                </p>
-              </div>
-            </div>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleLoadSample}
-              leftIcon={<Sparkles className="w-3.5 h-3.5 text-[#C9A24D]" />}
-            >
-              {language === 'ar' ? 'تحميل بيانات تجريبية' : 'Load Sample Data'}
-            </Button>
-          </div>
-
           {/* Batch & Assessor Assignment Configuration Card */}
           <div className="p-4 rounded-xl border border-[#E8D9D2] bg-white shadow-[0_1px_3px_rgba(63,48,48,0.03)] space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
@@ -849,6 +820,14 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
 
               <div className="flex items-center justify-end gap-3 pt-1">
                 <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleLoadSample}
+                  leftIcon={<Sparkles className="w-3.5 h-3.5 text-[#C9A24D]" />}
+                >
+                  {language === 'ar' ? 'تحميل بيانات تجريبية' : 'Load Sample Data'}
+                </Button>
+                <Button
                   variant="primary"
                   size="sm"
                   onClick={handleProcessData}
@@ -885,13 +864,6 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                       {language === 'ar' ? 'جوازات / حجوزات مكررة' : 'Duplicate Records'}
                     </span>
                     <strong className="font-mono text-sm">{summary.duplicate}</strong>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-rose-50 text-rose-800 border border-rose-200">
-                    <span className="font-medium flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      {language === 'ar' ? 'حجوزات ملغاة' : 'Cancelled Records'}
-                    </span>
-                    <strong className="font-mono text-sm">{summary.cancelled}</strong>
                   </div>
                   <div className="flex items-center justify-between p-2 rounded-lg bg-stone-100 text-stone-700 border border-stone-200">
                     <span className="font-medium flex items-center gap-1.5">
@@ -1161,7 +1133,7 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                     <th className="py-2.5 px-3 text-start font-semibold">Batch</th>
                     <th className="py-2.5 px-3 text-start font-semibold">Assigned Assessor</th>
                     <th className="py-2.5 px-3 text-start font-semibold">Status</th>
-                    <th className="py-2.5 px-3 text-end font-semibold">Evaluation & Actions</th>
+                    <th className="py-2.5 px-3 text-end font-semibold"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E8D9D2]">
@@ -1173,7 +1145,6 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                     </tr>
                   ) : (
                     preloadedCandidates.map(c => {
-                      const isEnrolled = c.enrollmentStatus === 'ENROLLED' || c.status === 'ENROLLED' || c.status === 'IN_ASSESSMENT' || c.status === 'COMPLETED';
                       const b = batches.find(batch => batch.id === c.batchId);
                       return (
                         <tr key={c.id} className="hover:bg-stone-50/50 transition-colors">
@@ -1218,12 +1189,6 @@ MD ROKEY MIAH\tSaudi SVP\t8732786235\tA21891490\t—\t3825005\tWarehouse Worker\
                                 <FileCheck className="w-3.5 h-3.5" />
                                 <span className="hidden md:inline">Form L1</span>
                               </button>
-
-                              {isEnrolled && (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled
-                                </span>
-                              )}
                             </div>
                           </td>
                         </tr>

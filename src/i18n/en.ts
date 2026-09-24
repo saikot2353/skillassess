@@ -23,6 +23,8 @@ export const en = {
     assessmentManagement: 'Assessment Management',
     schedules: 'Schedules',
     batches: 'Batches',
+    liveStatus: 'Live Status',
+    verificationQueue: 'Verification Queue',
     candidates: 'Candidates',
     assessments: 'Assessments',
     results: 'Results',

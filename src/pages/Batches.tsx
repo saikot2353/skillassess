@@ -199,18 +199,6 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
           <button
             type="button"
             onClick={() => {
-              setLiveProgressBatch(b);
-              AuditService.log('VIEW', 'BATCH_LIVE_PROGRESS', `Inspected live progression for batch ${b.batchNumber}`, b.id);
-            }}
-            className="p-1.5 px-2 rounded text-xs font-medium text-[#7A2E3A] hover:bg-[#F8ECEE] border border-[#E8D9D2] transition-colors inline-flex items-center gap-1"
-            title={language === 'ar' ? 'المتابعة الميدانية للدفعة' : 'Live Candidate Progress & Photos'}
-          >
-            <BarChart3 className="w-3.5 h-3.5 text-[#A43950]" />
-            <span className="hidden sm:inline">{language === 'ar' ? 'المتابعة' : 'Live'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
               setEndOfDayReportBatch(b);
               AuditService.log('VIEW', 'BATCH_EOD_REPORT', `Opened End-of-Day report for batch ${b.batchNumber}`, b.id);
             }}
@@ -327,9 +315,7 @@ export const BatchesPage: React.FC<{ onNavigate?: (path: string) => void }> = ({
         onClose={() => setIsAddOpen(false)}
         maxWidth="lg"
         title="Create New Batch"
-        subtitle="Group candidate cohorts for assessment execution"
         icon={<Layers className="w-6 h-6" />}
-        infoNotice="Candidates in this batch will be assigned to testing shifts sequentially."
         footer={
           <>
             <Button variant="secondary" size="md" onClick={() => setIsAddOpen(false)}>
